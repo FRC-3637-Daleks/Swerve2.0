@@ -1,0 +1,160 @@
+{
+  "HALProvider": {
+    "Other Devices": {
+      "window": {
+        "visible": false
+      }
+    },
+    "Timing": {
+      "window": {
+        "visible": false
+      }
+    }
+  },
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Drivebase": "Subsystem",
+      "/SmartDashboard/Field": "Field2d",
+      "/SmartDashboard/Swerve/TurnPIDController": "ProfiledPIDController",
+      "/SmartDashboard/zeroEncodersCommand": "Command"
+    },
+    "windows": {
+      "/SmartDashboard/Field": {
+        "FL": {
+          "arrowColor": [
+            1.0,
+            1.0,
+            0.0,
+            255.0
+          ],
+          "arrowSize": 100,
+          "arrowWeight": 2.0,
+          "length": 0.30000001192092896,
+          "style": "Hidden",
+          "width": 0.10000000149011612
+        },
+        "FR": {
+          "arrowColor": [
+            255.0,
+            240.0,
+            0.0,
+            255.0
+          ],
+          "arrowSize": 100,
+          "arrowWeight": 2.0,
+          "length": 0.30000001192092896,
+          "style": "Hidden",
+          "weight": 2.0,
+          "width": 0.10000000149011612
+        },
+        "Hopper": {
+          "arrows": false,
+          "length": 0.6859999895095825,
+          "style": "Line"
+        },
+        "Notes": {
+          "arrows": false,
+          "color": [
+            1.0,
+            0.38235294818878174,
+            0.0,
+            255.0
+          ],
+          "length": 0.33000001311302185,
+          "width": 0.33000001311302185
+        },
+        "RL": {
+          "arrowColor": [
+            1.0,
+            1.0,
+            0.0,
+            255.0
+          ],
+          "arrowSize": 100,
+          "arrowWeight": 2.0,
+          "length": 0.30000001192092896,
+          "style": "Hidden",
+          "width": 0.10000000149011612
+        },
+        "RR": {
+          "arrowColor": [
+            240.00001525878906,
+            255.0,
+            0.0,
+            255.0
+          ],
+          "arrowSize": 100,
+          "arrowWeight": 2.0,
+          "color": [
+            1.0,
+            1.0,
+            0.0,
+            255.0
+          ],
+          "length": 0.30000001192092896,
+          "style": "Hidden",
+          "weight": 2.0,
+          "width": 0.10000000149011612
+        },
+        "Robot": {
+          "length": 0.9100000262260437,
+          "style": "Box/Image",
+          "width": 0.9100000262260437
+        },
+        "bottom": 1476,
+        "height": 8.210550308227539,
+        "left": 150,
+        "right": 2961,
+        "simulation": {
+          "style": "Box/Image"
+        },
+        "top": 79,
+        "vision estimate": {
+          "arrows": false,
+          "color": [
+            0.0,
+            255.0,
+            0.0,
+            255.0
+          ]
+        },
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
+      }
+    }
+  },
+  "NetworkTables": {
+    "transitory": {
+      "SmartDashboard": {
+        "Drivebase": {
+          "open": true
+        },
+        "Swerve": {
+          "RL": {
+            "open": true
+          },
+          "TurnPIDController": {
+            "open": true
+          },
+          "open": true
+        },
+        "TurnPID": {
+          "open": true
+        },
+        "open": true
+      }
+    }
+  },
+  "NetworkTables Info": {
+    "Connections": {
+      "open": true
+    },
+    "Server": {
+      "open": true
+    },
+    "visible": true
+  }
+}
