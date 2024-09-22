@@ -22,8 +22,10 @@
 #include <units/velocity.h>
 #include <units/voltage.h>
 #include <units/current.h>
+#include <units/time.h>
 
 #include <iostream>
+#include <numbers>
 #include <random>
 
 namespace ModuleConstants {

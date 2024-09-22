@@ -1,15 +1,10 @@
 #pragma once
-// using namespace units::literals;
-// #include <units/units.h>
 
 #include <AHRS.h>
-#include <cmath>
 #include <frc/PowerDistribution.h>
 #include <frc/estimator/SwerveDrivePoseEstimator.h>
 #include <frc/geometry/Pose2d.h>
 #include <frc/kinematics/SwerveDriveKinematics.h>
-#include <frc/kinematics/SwerveDriveOdometry.h>
-#include <frc/simulation/LinearSystemSim.h>
 #include <frc/smartdashboard/Field2d.h>
 #include <frc2/command/CommandPtr.h>
 #include <frc2/command/SubsystemBase.h>

@@ -14,18 +14,7 @@
 #include <frc2/command/button/CommandJoystick.h>
 #include <frc2/command/button/JoystickButton.h>
 
-#include "frc/apriltag/AprilTagFields.h"
-#include <frc/apriltag/AprilTagFieldLayout.h>
-#include <frc/smartdashboard/Mechanism2d.h>
 #include <frc/smartdashboard/SendableChooser.h>
-
-#include <units/acceleration.h>
-#include <units/angle.h>
-#include <units/angular_acceleration.h>
-#include <units/angular_velocity.h>
-#include <units/length.h>
-#include <units/velocity.h>
-#include <units/voltage.h>
 
 #include <numbers>
 

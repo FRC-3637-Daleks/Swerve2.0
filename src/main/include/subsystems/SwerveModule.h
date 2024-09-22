@@ -1,31 +1,19 @@
 #pragma once
 
-#include <ctre/phoenix6/CANcoder.hpp>
-#include <frc/AnalogInput.h>
-#include <frc/AnalogPotentiometer.h>
 #include <frc/geometry/Rotation2d.h>
 #include <frc/kinematics/SwerveModulePosition.h>
 #include <frc/kinematics/SwerveModuleState.h>
 
-#include <units/acceleration.h>
 #include <units/angle.h>
-#include <units/angular_acceleration.h>
 #include <units/angular_velocity.h>
 #include <units/length.h>
-#include <units/moment_of_inertia.h>
 #include <units/velocity.h>
-#include <units/voltage.h>
 
-#include <ctre/phoenix/motorcontrol/can/TalonFX.h>
+#include <ctre/phoenix6/CANcoder.hpp>
 #include <ctre/phoenix6/TalonFX.hpp>
-#include <numbers>
 
 // forward declaration
 class SwerveModuleSim;
-
-struct PIDCoefficients {
-  double kP, kI, kD, kFF, kIz;
-};
 
 /**
  * The SwerveModule helper class consists of a steer motor and a drive motor
