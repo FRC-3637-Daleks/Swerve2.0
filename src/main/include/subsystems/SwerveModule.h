@@ -20,39 +20,6 @@
 #include <ctre/phoenix6/TalonFX.hpp>
 #include <numbers>
 
-namespace ModuleConstants {
-
-constexpr double NeutralDeadBand = 0.01;
-constexpr double kDriveMotorCurrentLimit = 50; // Up to 80 A is okay
-constexpr double kSteerMotorCurrentLimit = 50; // An educated guess.
-constexpr auto kCurrentLimitPeriod =
-    0.04_s; // Can exceed limit for 40ms seconds
-
-// Best defense against current
-constexpr double kMotorRampRate = 0.2; // Seconds from neutral to full output.
-
-constexpr auto kWheelDiameterIdeal = 4_in;
-constexpr auto kWheelDiameter = kWheelDiameterIdeal;
-
-constexpr double kDriveEncoderReduction = 6.75;     // reduction in drive motor
-constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per
-                                                    // revolution of motor
-    kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;
-constexpr auto kWheelMoment = .015_kg_sq_m;
-constexpr auto kTalonSpeedRPMChoreo = 5104; // choreo value
-constexpr auto kTalonSpeedRPM = 6080;       // Website value
-constexpr auto kDriveAcceleration = 350;
-constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
-
-constexpr double kSteerGearReduction = 150.0 / 7.0;
-constexpr auto kSteerMoment = 0.005_kg_sq_m;
-constexpr auto kSteerAcceleration =
-    1 * kSteerGearReduction; // One tps^2 Acceleration, needs testing
-
-// Values measured with the drivetrain suspended.
-constexpr auto kPhysicalMaxSpeed = 15.7_fps;
-} // namespace ModuleConstants
-
 // forward declaration
 class SwerveModuleSim;
 
@@ -74,9 +41,7 @@ class SwerveModule {
 public:
   // The ctor of the SwerveModule class.
   SwerveModule(const std::string name, const int driveMotorId,
-               const int steerMotorId, const int absoluteEncoderId,
-               const PIDCoefficients driveMotorPIDCoefficients,
-               const PIDCoefficients steerMotorPIDCoefficients);
+               const int steerMotorId, const int absoluteEncoderId);
 
   // Need to define destructor to make simulation code compile
   ~SwerveModule();

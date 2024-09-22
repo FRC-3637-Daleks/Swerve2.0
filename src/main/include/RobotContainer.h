@@ -31,49 +31,6 @@
 
 #include "subsystems/Drivetrain.h"
 
-namespace AutoConstants {
-
-constexpr auto kMaxSpeed = 4.5_mps;
-constexpr auto kMaxAcceleration = 6_mps_sq;
-constexpr auto kPathMaxAcceleration = 4_mps_sq;
-// Swerve Constants (NEED TO BE INTEGRATED)
-// constexpr auto kMaxSpeed = ModuleConstants::kPhysicalMaxSpeed / 3; // left
-// out as these are repeat values constexpr auto kMaxAcceleration = 10_fps_sq;
-constexpr auto kMaxAngularSpeed = std::numbers::pi * 1_rad_per_s;
-constexpr auto kMaxAngularAcceleration = std::numbers::pi * 2_rad_per_s_sq;
-
-// XXX Very untrustworthy placeholder values.
-constexpr double kPXController = 0.5;
-constexpr double kPYController = 0.5;
-constexpr double kPThetaController = 0.5;
-
-// Trapezoidal motion profile for the robot heading.
-const frc::TrapezoidProfile<units::radians>::Constraints
-    kThetaControllerConstraints{kMaxAngularSpeed, kMaxAngularAcceleration};
-} // namespace AutoConstants
-
-namespace OperatorConstants {
-
-constexpr int kCopilotControllerPort = 1;
-constexpr int kSwerveControllerPort = 0;
-
-constexpr double kDeadband = 0.08;
-constexpr double kClimbDeadband = 0.08;
-
-constexpr int kStrafeAxis = frc::Joystick::kXAxis;
-constexpr int kForwardAxis = frc::Joystick::kYAxis;
-constexpr int kRotationAxis = frc::Joystick::kZAxis;
-constexpr int kFieldRelativeButton = frc::XboxController::Button::kRightBumper;
-
-} // namespace OperatorConstants
-
-namespace FieldConstants {
-
-constexpr auto field_length = 54_ft + 3.25_in;
-constexpr auto field_width = 26_ft + 11.75_in;
-constexpr auto mid_line = field_length / 2;
-
-} // namespace FieldConstants
 
 /**
  * This class is where the bulk of the robot should be declared.  Since
@@ -92,8 +49,7 @@ public:
 public:
   // Replace with CommandPS4Controller or CommandJoystick if needed
 
-  frc2::CommandJoystick m_swerveController{
-      OperatorConstants::kSwerveControllerPort};
+  frc2::CommandJoystick m_swerveController;
 
   // Button Triggers are defined here.
 
