@@ -51,7 +51,8 @@ public:
 
   // This one is even more efficient than RefreshSignals as it groups ALL
   // swerve module signals into a single call
-  template <typename... T> static void RefreshAllSignals(T &...modules);
+  template <std::same_as<SwerveModule>... T> static void RefreshAllSignals(T &...modules);
+  template <unsigned long N> static void RefreshAllSignals(std::array<SwerveModule, N> &modules);
 
   // Returns the meters driven based on encoder reading.
   units::meter_t GetModuleDistance();
@@ -67,6 +68,8 @@ public:
 
   // Combines GetModuleVelocity() and GetModuleHeading().
   frc::SwerveModuleState GetState();
+
+  const std::string& GetName() {return m_name;}
 
   void CoastMode(bool coast);
 
@@ -113,9 +116,15 @@ private:
 };
 
 // Template method must be defined in .h
-template <typename... T> void SwerveModule::RefreshAllSignals(T &...modules) {
+template <std::same_as<SwerveModule>... T> void SwerveModule::RefreshAllSignals(T &...modules) {
   // This passes all 4N signals to one call to RefreshAll
   ctre::phoenix6::BaseStatusSignal::RefreshAll(
       modules.m_drivePosition..., modules.m_driveVelocity...,
       modules.m_steerPosition..., modules.m_steerVelocity...);
+}
+
+template <unsigned long N> void SwerveModule::RefreshAllSignals(std::array<SwerveModule, N> &modules) {
+  std::apply([](auto&& ...ms) {
+    RefreshAllSignals(std::forward<decltype(ms)>(ms)...);
+  }, modules);
 }

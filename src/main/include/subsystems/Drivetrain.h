@@ -130,10 +130,29 @@ public:
   frc2::CommandPtr TurnToAngleCommand(units::degree_t angle);
 
 private:
-  SwerveModule m_frontLeft;
-  SwerveModule m_rearLeft;
-  SwerveModule m_frontRight;
-  SwerveModule m_rearRight;
+  // magic to make doing stuff for every module easier
+  auto each_module(auto&& fn)
+  {
+    return std::apply([fn = std::forward<decltype(fn)>(fn)](auto&&... ms)
+    {
+      return wpi::array{
+        std::forward<decltype(fn)>(fn)(
+          std::forward<decltype(ms)>(ms))...};
+    }, m_modules);
+  }
+
+  auto each_position() {
+    return each_module([](SwerveModule &m) {return m.GetPosition();});
+  }
+
+  auto each_state() {
+    return each_module([](SwerveModule &m) {return m.GetState();});
+  }
+
+private:
+  enum module_id {
+    kFrontLeft=0, kFrontRight, kRearLeft, kRearRight, kNumModules};
+  std::array<SwerveModule, kNumModules> m_modules;
 
   AHRS m_gyro;
 
