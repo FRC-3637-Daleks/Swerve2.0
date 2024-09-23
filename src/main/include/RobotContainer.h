@@ -57,7 +57,7 @@ namespace OperatorConstants {
 constexpr int kCopilotControllerPort = 1;
 constexpr int kSwerveControllerPort = 0;
 
-constexpr double kDeadband = 0.08;
+constexpr double kDeadband = 0.12;
 constexpr double kClimbDeadband = 0.08;
 
 constexpr int kStrafeAxis = frc::Joystick::kXAxis;

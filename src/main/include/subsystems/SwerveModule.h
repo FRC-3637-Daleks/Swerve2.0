@@ -38,7 +38,7 @@ constexpr auto kPhysicalMaxSpeed = 15.7_fps;
 
 constexpr double kDriveMotorCurrentLimit = 50; // Up to 80 A is okay
 constexpr double kDriveEncoderReduction = 6.75;     // reduction in drive motor
-constexpr auto kDriveAcceleration = 350;
+constexpr auto kDriveAcceleration = 275;
 constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per
                                                     // revolution of motor
     kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;

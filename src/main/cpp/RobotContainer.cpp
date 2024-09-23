@@ -92,6 +92,7 @@ void RobotContainer::ConfigureBindings() {
 
   m_swerveController.Button(9).ToggleOnTrue(
       m_swerve.SwerveCommand(fwd, strafe, rot));
+  m_swerveController.Button(1).ToggleOnTrue(m_swerve.SwerveSlowCommand(fwd, strafe, rot, checkRed));
 
 }
 
