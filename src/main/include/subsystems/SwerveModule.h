@@ -23,8 +23,6 @@
 namespace ModuleConstants {
 
 constexpr double NeutralDeadBand = 0.01;
-constexpr double kDriveMotorCurrentLimit = 50; // Up to 80 A is okay
-constexpr double kSteerMotorCurrentLimit = 50; // An educated guess.
 constexpr auto kCurrentLimitPeriod =
     0.04_s; // Can exceed limit for 40ms seconds
 
@@ -33,24 +31,25 @@ constexpr double kMotorRampRate = 0.2; // Seconds from neutral to full output.
 
 constexpr auto kWheelDiameterIdeal = 4_in;
 constexpr auto kWheelDiameter = kWheelDiameterIdeal;
+constexpr auto kWheelMoment = .015_kg_sq_m;
+constexpr auto kTalonSpeedRPM = 6080;       // Website value
+// Values measured with the drivetrain suspended.
+constexpr auto kPhysicalMaxSpeed = 15.7_fps;
 
+constexpr double kDriveMotorCurrentLimit = 50; // Up to 80 A is okay
 constexpr double kDriveEncoderReduction = 6.75;     // reduction in drive motor
+constexpr auto kDriveAcceleration = 350;
 constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per
                                                     // revolution of motor
     kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;
-constexpr auto kWheelMoment = .015_kg_sq_m;
-constexpr auto kTalonSpeedRPMChoreo = 5104; // choreo value
-constexpr auto kTalonSpeedRPM = 6080;       // Website value
-constexpr auto kDriveAcceleration = 350;
 constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
 
+constexpr double kSteerMotorCurrentLimit = 50; // An educated guess.
 constexpr double kSteerGearReduction = 150.0 / 7.0;
 constexpr auto kSteerMoment = 0.005_kg_sq_m;
 constexpr auto kSteerAcceleration =
     1 * kSteerGearReduction; // One tps^2 Acceleration, needs testing
 
-// Values measured with the drivetrain suspended.
-constexpr auto kPhysicalMaxSpeed = 15.7_fps;
 } // namespace ModuleConstants
 
 // forward declaration
@@ -69,6 +68,7 @@ struct PIDCoefficients {
  * its wheel will be driven at the specified velocity in the specified
  * direction. The Drivetrain subsystem makes use of SwerveModule objects so that
  * it doesn't need to deal with directly commanding each motor.
+ * 
  */
 class SwerveModule {
 public:

@@ -27,17 +27,17 @@
         },
         {
           "decayRate": 0.009999999776482582,
+          "incKey": 69,
           "keyRate": 0.009999999776482582
         },
         {},
         {
           "decKey": 81,
           "decayRate": 0.20000000298023224,
-          "incKey": 69,
           "maxAbsValue": 0.75
         }
       ],
-      "axisCount": 5,
+      "axisCount": 4,
       "buttonCount": 4,
       "buttonKeys": [
         90,

@@ -34,11 +34,11 @@ public:
         m_steerSim(std::move(module.m_steerMotor.GetSimState())),
         m_encoderSim(std::move(module.m_absoluteEncoder.GetSimState())),
         m_wheelModel(frc::DCMotor::Falcon500(1),
-                     ModuleConstants::kDriveEncoderReduction,
+                     kDriveEncoderReduction,
                      ModuleConstants::kWheelMoment),
         m_swivelModel(frc::DCMotor::Falcon500(1),
-                      ModuleConstants::kSteerGearReduction,
-                      ModuleConstants::kSteerMoment) {
+                     kSteerGearReduction,
+                     kSteerMoment) {
     static std::random_device rng;
     std::uniform_real_distribution dist(-0.5, 0.5);
 
@@ -71,18 +71,7 @@ SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
       m_sim_state(new SwerveModuleSim(*this)) {
 
   ctre::phoenix6::configs::TalonFXConfiguration steerConfig, driveConfig;
-  ctre::phoenix6::configs::MotionMagicConfigs &steerMMConfig =
-                                                  steerConfig.MotionMagic,
-                                              &driveMMConfig =
-                                                  driveConfig.MotionMagic;
-
-  driveMMConfig.MotionMagicCruiseVelocity = (kTalonSpeedRPM) / 60;
-  driveMMConfig.MotionMagicAcceleration = kDriveAcceleration;
-  driveMMConfig.MotionMagicJerk = 0;
-
-  steerMMConfig.MotionMagicCruiseVelocity = (kTalonSpeedRPM) / 60;
-  steerMMConfig.MotionMagicAcceleration = kSteerAcceleration;
-  steerMMConfig.MotionMagicJerk = 0;
+  
   ctre::phoenix6::configs::MotorOutputConfigs steerOutputConfigs;
   steerOutputConfigs.WithNeutralMode(
       ctre::phoenix6::signals::NeutralModeValue::Brake);
@@ -145,13 +134,26 @@ SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
   drivePIDConfigs.kV =
       1.0 / (kPhysicalMaxSpeed / kDistanceToRotations * 1_s / 1_tr);
   driveConfig.WithSlot0(drivePIDConfigs);
+
+  ctre::phoenix6::configs::MotionMagicConfigs &driveMMConfig =
+                                                  driveConfig.MotionMagic;
+  driveMMConfig.MotionMagicAcceleration = kDriveAcceleration;
+  driveMMConfig.MotionMagicJerk = 0;
   driveMMConfig.MotionMagicExpo_kV = driveConfig.Slot0.kV;
+
   ctre::phoenix6::configs::Slot0Configs steerPIDConfigs{};
   steerPIDConfigs.kP = steerMotorPIDCoefficients.kP;
   steerPIDConfigs.kI = steerMotorPIDCoefficients.kI;
   steerPIDConfigs.kD = steerMotorPIDCoefficients.kD;
   steerPIDConfigs.kV = 0.0;
   steerConfig.WithSlot0(steerPIDConfigs);
+
+  ctre::phoenix6::configs::MotionMagicConfigs &steerMMConfig =
+                                                  steerConfig.MotionMagic;
+  steerMMConfig.MotionMagicCruiseVelocity = (kTalonSpeedRPM) / 60;
+  steerMMConfig.MotionMagicAcceleration = kSteerAcceleration;
+  steerMMConfig.MotionMagicExpo_kA = 0.4;
+  steerMMConfig.MotionMagicJerk = 0;
   steerMMConfig.MotionMagicExpo_kV = steerConfig.Slot0.kV;
 
   ctre::phoenix6::configs::ClosedLoopGeneralConfigs steerClosedLoopConfig{};
@@ -167,10 +169,6 @@ SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
   steerFeedbackConfigs.SensorToMechanismRatio = 1.0;
   steerConfig.WithFeedback(steerFeedbackConfigs);
 
-  // ctre::phoenix6::configs::TorqueCurrentConfigs torqueCurrentConfig;
-  // torqueCurrentConfig.PeakForwardTorqueCurrent = 80;
-  // torqueCurrentConfig.PeakReverseTorqueCurrent = -80;
-  // driveConfig.WithTorqueCurrent(torqueCurrentConfig);
 
   int retries = 4;
   while (auto ret = m_driveMotor.GetConfigurator().Apply(driveConfig, 500_ms)) {

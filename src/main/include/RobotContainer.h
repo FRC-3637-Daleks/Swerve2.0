@@ -63,8 +63,7 @@ constexpr double kClimbDeadband = 0.08;
 constexpr int kStrafeAxis = frc::Joystick::kXAxis;
 constexpr int kForwardAxis = frc::Joystick::kYAxis;
 constexpr int kRotationAxis = frc::Joystick::kZAxis;
-constexpr int kFieldRelativeButton = frc::XboxController::Button::kRightBumper;
-
+constexpr int kThrottleAxis = frc::Joystick::kThrottleAxis;
 } // namespace OperatorConstants
 
 namespace FieldConstants {
@@ -94,20 +93,6 @@ public:
 
   frc2::CommandJoystick m_swerveController{
       OperatorConstants::kSwerveControllerPort};
-
-  // Button Triggers are defined here.
-
-  frc2::Trigger DriveFwdTrigger{
-      [this]() -> bool { return m_swerveController.GetPOV() == 0; }};
-
-  frc2::Trigger DriveStrafeLeftTrigger{
-      [this]() -> bool { return m_swerveController.GetPOV() == 270; }};
-
-  frc2::Trigger DriveStrafeRightTrigger{
-      [this]() -> bool { return m_swerveController.GetPOV() == 90; }};
-
-  frc2::Trigger DriveRevTrigger{
-      [this]() -> bool { return m_swerveController.GetPOV() == 180; }};
 
   // The robot's subsystems are defined here...
 

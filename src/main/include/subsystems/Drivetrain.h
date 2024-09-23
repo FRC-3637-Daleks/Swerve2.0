@@ -22,7 +22,6 @@
 #include "SwerveModule.h"
 
 namespace DriveConstants {
-constexpr auto kMaxSpeed = 15.7_fps;
 constexpr auto kMaxTeleopSpeed = 15.7_fps;
 constexpr auto kWeight = 123_lb;
 constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
@@ -206,11 +205,6 @@ public:
 
   frc2::CommandPtr ConfigAbsEncoderCommand();
 
-  // Returns a command that stops the robot.
-  frc2::CommandPtr BrakeCommand();
-
-  frc2::CommandPtr TurnToAngleCommand(units::degree_t angle);
-
   /**
    * Use robot relative speeds and a dedicated angle to properly control
    * rotation in autonomous.
@@ -220,8 +214,6 @@ public:
    * @param strafe The commanded strafe velocity, robot relative
    * @param isRed Correctly orient robot if we are on the red alliance or not.
    */
-  void OverrideAngle(frc::Rotation2d angle, units::meters_per_second_t forward,
-                     units::meters_per_second_t strafe, bool isRed);
 
 private:
   SwerveModule m_frontLeft;

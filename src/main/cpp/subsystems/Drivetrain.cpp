@@ -80,21 +80,6 @@ void Drivetrain::Periodic() {
   SwerveModule::RefreshAllSignals(m_frontLeft, m_frontRight, m_rearLeft,
                                   m_rearRight);
 
-  // const auto fr_pos = m_frontRight.GetPosition();
-  // const auto rl_pos = m_rearLeft.GetPosition();
-  // const auto rr_pos = m_rearRight.GetPosition();
-  // const auto fl_pos = m_frontLeft.GetPosition();
- 
-  // const auto fr_pos = m_frontRight.GetPosition();
-  // const auto rl_pos = m_rearLeft.GetPosition();
-  // const auto fl_pos = m_frontLeft.GetPosition();
-  // const auto rr_pos = m_rearRight.GetPosition();
-
-  // const auto fr_pos = m_frontRight.GetPosition();
-  // const auto fl_pos = m_frontLeft.GetPosition();
-  // const auto rl_pos = m_rearLeft.GetPosition();
-  // const auto rr_pos = m_rearRight.GetPosition();
-
   // Update the odometry with the current gyro angle and module states.
   auto fl_pos = m_frontLeft.GetPosition();
   auto fr_pos = m_frontRight.GetPosition();
@@ -110,12 +95,6 @@ void Drivetrain::Periodic() {
 
   auto corrected_pose = new_pose.TransformBy(
       {0_m, -dist * DriveConstants::kOdometryCompensationFactor, 0_deg});
-
-  // Forgive me God for I have sinned
-  // -- Eric
-  /*m_poseEstimator.AddVisionMeasurement(
-      corrected_pose, wpi::math::MathSharedStore::GetTimestamp(),
-      {0.0, 0.0, 0.0});*/
 
   this->UpdateDashboard();
 }
@@ -148,7 +127,7 @@ void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
   // Occasionally a drive motor is commanded to go faster than its maximum
   // output can sustain. Desaturation lowers the module speeds so that no motor
   // is driven above its maximum speed, while preserving the intended motion.
-  kDriveKinematics.DesaturateWheelSpeeds(&states, DriveConstants::kMaxSpeed);
+  kDriveKinematics.DesaturateWheelSpeeds(&states, ModuleConstants::kPhysicalMaxSpeed);
 
   // Finally each of the desired states can be sent as commands to the modules.
   auto [fl, fr, rl, rr] = states;
@@ -162,7 +141,7 @@ void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
 void Drivetrain::SetModuleStates(
     wpi::array<frc::SwerveModuleState, 4> desiredStates) {
   kDriveKinematics.DesaturateWheelSpeeds(&desiredStates,
-                                         DriveConstants::kMaxSpeed);
+                                         ModuleConstants::kPhysicalMaxSpeed);
   m_frontLeft.SetDesiredState(desiredStates[0]);
   m_frontRight.SetDesiredState(desiredStates[1]);
   m_rearLeft.SetDesiredState(desiredStates[2]);
@@ -175,7 +154,6 @@ frc::Rotation2d Drivetrain::GetGyroHeading() {
   return units::degree_t(-m_gyro.GetYaw());
 }
 
-// void Drivetrain::ZeroHeading() { m_gyro.Reset();}
 void Drivetrain::ZeroHeading() {
   auto pose = GetPose();
   ResetOdometry(frc::Pose2d{pose.X(), pose.Y(), 0_deg});
@@ -208,6 +186,7 @@ void Drivetrain::CoastMode(bool coast) {
   m_rearLeft.CoastMode(coast);
   m_rearRight.CoastMode(coast);
 }
+
 units::degrees_per_second_t Drivetrain::GetTurnRate() {
   return -m_gyro.GetRate() * 1_deg_per_s;
 }
@@ -288,11 +267,6 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutData("PDH", &m_pdh);
 
   frc::SmartDashboard::PutData("Swerve/TurnPIDController", &m_turnPID);
-
-  // frc::SmartDashboard::PutNumber("PDH/Voltage", m_pdh.GetVoltage());
-
-  // frc::SmartDashboard::PutNumber("PDH/Total Current",
-  // m_pdh.GetTotalCurrent());
 }
 
 void Drivetrain::SimulationPeriodic() {
@@ -336,11 +310,9 @@ frc2::CommandPtr Drivetrain::SwerveCommand(
     std::function<units::meters_per_second_t()> forward,
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot) {
-  // fmt::print("making command\n");
+
   return this->Run([=] {
-    // fmt::print("starting drive command\n");
     Drive(forward(), strafe(), rot(), false, false);
-    // fmt::print("sent drive command\n");
   });
 }
 
@@ -357,11 +329,8 @@ frc2::CommandPtr Drivetrain::SwerveSlowCommand(
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot,
     std::function<bool()> isRed) {
-  // fmt::print("making command\n");
   return this->Run([=] {
-    // fmt::print("starting drive command\n");
     Drive(forward() / 4, strafe() / 4, rot() / 5, true, isRed());
-    // fmt::print("sent drive command\n");
   });
 }
 
@@ -391,7 +360,7 @@ frc2::CommandPtr Drivetrain::ConfigAbsEncoderCommand() {
   return this
       ->StartEnd(
           [&] {
-            fmt::print("insdie the configabscommand ********* ");
+            fmt::print("inside the configAbsCommand ********* ");
             CoastMode(true);
             ZeroAbsEncoders();
           },
@@ -402,33 +371,4 @@ frc2::CommandPtr Drivetrain::ConfigAbsEncoderCommand() {
       .AndThen(frc2::WaitCommand(0.5_s).ToPtr())
       .AndThen(this->RunOnce([&] { SyncEncoders(); }))
       .IgnoringDisable(true);
-}
-
-void Drivetrain::OverrideAngle(frc::Rotation2d angle,
-                               units::meters_per_second_t forward,
-                               units::meters_per_second_t strafe, bool isRed) {
-  auto errorAngle =
-      frc::AngleModulus(GetPose().Rotation().Degrees() - angle.Degrees());
-
-  m_turnPID.SetGoal(0_deg);
-
-  double output = m_turnPID.Calculate(errorAngle);
-
-  auto setpoint = m_turnPID.GetSetpoint();
-
-  Drive(forward, strafe,
-        setpoint.velocity +
-            units::angular_velocity::radians_per_second_t(output),
-        false, isRed);
-
-  // Debugging print
-  frc::SmartDashboard::PutNumber("TurnPID/Current Angle", errorAngle.value());
-  frc::SmartDashboard::PutNumber("TurnPID/PID Output", output);
-  frc::SmartDashboard::PutNumber("TurnPID/Setpoint Velocity",
-                                 setpoint.velocity.value());
-  frc::SmartDashboard::PutNumber("TurnPID/Setpoint Position",
-                                 setpoint.position.value());
-  double pidVal[] = {DriveConstants::kPTurn, DriveConstants::kITurn,
-                     DriveConstants::kDTurn};
-  frc::SmartDashboard::PutNumberArray("TurnPID/PID Val", pidVal);
 }
