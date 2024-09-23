@@ -281,19 +281,18 @@ void SwerveModule::SyncEncoders() {
 void SwerveModule::SetDesiredState(
     const frc::SwerveModuleState &referenceState) {
   // Optimize the reference state to prevent the module turning >90 degrees.
-  auto state =
+ const auto state =
       frc::SwerveModuleState::Optimize(referenceState, GetModuleHeading());
-  state.speed = units::velocity::meters_per_second_t(
-      state.speed.to<double>() * (state.angle - GetModuleHeading()).Cos());
-  ctre::phoenix6::controls::MotionMagicVelocityDutyCycle mmVelocityControl{
-      0_tps, 0_tr_per_s_sq, true, 0.0, 0, false, false, false};
-  ctre::phoenix6::controls::MotionMagicExpoDutyCycle mmSteerControl{
-      0_tr, true, 0.0, 0, false, false, false};
 
+  ctre::phoenix6::controls::VelocityDutyCycle velocityControl{
+      0_tps, 0_tr_per_s_sq, true};
   m_driveMotor.SetControl(
-      mmVelocityControl.WithVelocity(state.speed / kDistanceToRotations));
+      velocityControl.WithVelocity(state.speed / kDistanceToRotations));
 
-  m_steerMotor.SetControl(mmSteerControl.WithPosition(state.angle.Radians()));
+  ctre::phoenix6::controls::PositionDutyCycle positionControl{0_tr, 0_tps,
+                                                              true};
+
+  m_steerMotor.SetControl(positionControl.WithPosition(state.angle.Radians()));
 }
 
 // TODO Display things neater on the SmartDashboard.
