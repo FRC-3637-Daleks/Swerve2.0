@@ -11,6 +11,11 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc2/command/FunctionalCommand.h>
 #include <frc2/command/ProfiledPIDCommand.h>
+#include <frc/trajectory/Trajectory.h>
+#include <frc/trajectory/TrajectoryGenerator.h>
+#include <frc2/command/SequentialCommandGroup.h>
+#include <frc2/command/SwerveControllerCommand.h>
+#include <frc2/command/Commands.h>
 #include <frc2/command/WaitCommand.h>
 #include <wpi/array.h>
 
@@ -104,16 +109,26 @@ Drivetrain::~Drivetrain() {}
 void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
                        units::meters_per_second_t strafeSpeed,
                        units::radians_per_second_t angularSpeed,
-                       bool fieldRelative, bool isRed,
-                       units::millisecond_t period) {
-  //  Use the kinematics model to get from the set of commanded speeds to a set
-  //  of states that can be commanded to each module.
-  auto states = kDriveKinematics.ToSwerveModuleStates(
-      frc::ChassisSpeeds::Discretize(
-        fieldRelative ? frc::ChassisSpeeds::FromFieldRelativeSpeeds(
-                          -1 * forwardSpeed, -1 * strafeSpeed, angularSpeed, GetHeading())
-                      : frc::ChassisSpeeds{forwardSpeed, strafeSpeed, angularSpeed},
-        period));
+                       bool fieldRelative, bool isRed) {
+
+    auto states = kDriveKinematics.ToSwerveModuleStates(
+      frc::ChassisSpeeds{0_mps, 0_mps, 0_rad_per_s});
+
+  if (fieldRelative) {
+    if (isRed)  
+      states = kDriveKinematics.ToSwerveModuleStates(
+          frc::ChassisSpeeds::Discretize(
+            frc::ChassisSpeeds::FromFieldRelativeSpeeds(
+              -1 * forwardSpeed, -1 * strafeSpeed, angularSpeed, GetHeading()), kPeriod));
+    else
+      states = kDriveKinematics.ToSwerveModuleStates(
+        frc::ChassisSpeeds::Discretize(
+          frc::ChassisSpeeds::FromFieldRelativeSpeeds(
+              forwardSpeed, strafeSpeed, angularSpeed, GetHeading()), kPeriod));
+  } else {
+    states = kDriveKinematics.ToSwerveModuleStates(
+        frc::ChassisSpeeds{forwardSpeed, strafeSpeed, angularSpeed});
+  }
 
   // Occasionally a drive motor is commanded to go faster than its maximum
   // output can sustain. Desaturation lowers the module speeds so that no motor
@@ -303,7 +318,7 @@ frc2::CommandPtr Drivetrain::SwerveCommand(
     std::function<units::revolutions_per_minute_t()> rot) {
 
   return this->Run([=] {
-    Drive(forward(), strafe(), rot(), false, false, kPeriod);
+    Drive(forward(), strafe(), rot(), false, false);
   });
 }
 
@@ -312,7 +327,7 @@ frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot,
     std::function<bool()> isRed) {
-  return this->Run([=] { Drive(forward(), strafe(), rot(), true, isRed(), kPeriod); });
+  return this->Run([=] { Drive(forward(), strafe(), rot(), true, isRed()); });
 }
 
 frc2::CommandPtr Drivetrain::SwerveSlowCommand(
@@ -321,8 +336,49 @@ frc2::CommandPtr Drivetrain::SwerveSlowCommand(
     std::function<units::revolutions_per_minute_t()> rot,
     std::function<bool()> isRed) {
   return this->Run([=] {
-    Drive(forward() / 4, strafe() / 4, rot() / 5, true, isRed(), kPeriod);
+    Drive(forward() / 4, strafe() / 4, rot() / 5, true, isRed());
   });
+}
+
+frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d currentPose, 
+                                      frc::Pose2d desiredPose,
+                                      std::vector<frc::Translation2d> waypoints,
+                                      units::meters_per_second_t maxSpeed,
+                                      units::meters_per_second_squared_t maxAccel,
+                                      units::radians_per_second_t maxAngularSpeed,
+                                      units::radians_per_second_squared_t maxAngularAccel,
+                                      bool isRed) {
+
+  frc::TrajectoryConfig config{maxSpeed, maxAccel};
+  config.SetKinematics(kDriveKinematics);
+  frc::TrapezoidProfile<units::radians>::Constraints 
+    kTurnConstraints{maxAngularSpeed, maxAngularAccel};
+
+  auto trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
+    currentPose, waypoints, desiredPose, config);
+
+
+  frc::ProfiledPIDController<units::radians> thetaController{
+                                             kPTurn, kITurn, kDTurn, kTurnConstraints};
+  thetaController.EnableContinuousInput(units::radian_t{-std::numbers::pi},
+                                        units::radian_t{std::numbers::pi});
+  frc2::CommandPtr m_swerveControllerCommand =
+    frc2::SwerveControllerCommand<4>(trajectory,
+                                     [this]() {return GetPose();}, kDriveKinematics,
+                                     frc::PIDController{7.0, 0.0, 0.0},
+                                     frc::PIDController{5.0, 0.0, 0.0},
+                                     thetaController,
+                                     [this](auto moduleStates) {SetModuleStates(moduleStates);}).ToPtr();
+
+  return frc2::cmd::Sequence(
+    frc2::InstantCommand([this, initialPose = trajectory.InitialPose()](){
+      ResetOdometry(initialPose);
+    },
+    {}).ToPtr(),
+    std::move(m_swerveControllerCommand),
+    frc2::InstantCommand(
+      [this, isRed] { Drive(0_mps, 0_mps, 0_rad_per_s, true, isRed);}, {})
+      .ToPtr());
 }
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {

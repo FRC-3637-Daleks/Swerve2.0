@@ -47,6 +47,12 @@ constexpr double kPXController = 0.5;
 constexpr double kPYController = 0.5;
 constexpr double kPThetaController = 0.5;
 
+constexpr frc::Pose2d desiredPose{8.3_m, .77_m, 0_deg};
+constexpr frc::Translation2d waypoint1{8.3_m, 4.1_m};
+constexpr frc::Translation2d waypoint2{8.3_m, 5.78_m};
+std::vector<frc::Translation2d> waypointVector{waypoint1, waypoint2};
+
+
 // Trapezoidal motion profile for the robot heading.
 const frc::TrapezoidProfile<units::radians>::Constraints
     kThetaControllerConstraints{kMaxAngularSpeed, kMaxAngularAcceleration};
@@ -88,12 +94,17 @@ public:
   frc2::CommandPtr GetDisabledCommand();
   frc2::CommandPtr GetAutonomousCommand();
 
+
+
 public:
   // Replace with CommandPS4Controller or CommandJoystick if needed
 
   frc2::CommandJoystick m_swerveController{
       OperatorConstants::kSwerveControllerPort};
 
+  frc2::Trigger DriveToPoseTrigger{[this]() -> bool {
+    return m_swerveController.GetPOV() == 90; //right on DPad
+  }};
   // The robot's subsystems are defined here...
 
   Drivetrain m_swerve;

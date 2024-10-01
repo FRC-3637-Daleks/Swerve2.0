@@ -123,8 +123,7 @@ public:
   void Drive(units::meters_per_second_t forwardSpeed,
              units::meters_per_second_t strafeSpeed,
              units::radians_per_second_t angularSpeed, bool fieldRelative,
-             bool isRed,
-             units::millisecond_t period);
+             bool isRed);
 
   // Sets the state of each swerve module.
   void SetModuleStates(wpi::array<frc::SwerveModuleState, 4> desiredStates);
@@ -195,6 +194,15 @@ public:
                     std::function<units::meters_per_second_t()> strafe,
                     std::function<units::revolutions_per_minute_t()> rot,
                     std::function<bool()> isRed);
+
+  frc2::CommandPtr DriveToPoseCommand(frc::Pose2d currentPose, 
+                                      frc::Pose2d desiredPose,
+                                      std::vector<frc::Translation2d> waypoints,
+                                      units::meters_per_second_t maxSpeed,
+                                      units::meters_per_second_squared_t maxAccel,
+                                      units::radians_per_second_t maxAngularSpeed,
+                                      units::radians_per_second_squared_t maxAngularAccel,
+                                      bool isRed);
 
   // Returns a command that zeroes the robot heading.
   frc2::CommandPtr ZeroHeadingCommand();

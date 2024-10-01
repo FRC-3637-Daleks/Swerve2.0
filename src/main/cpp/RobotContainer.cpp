@@ -11,6 +11,7 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc2/command/Commands.h>
 #include <frc2/command/button/Trigger.h>
+#include <frc/filter/SlewRateLimiter.h>
 
 RobotContainer::RobotContainer()  {
 
@@ -55,7 +56,6 @@ RobotContainer::RobotContainer()  {
 }
 
 void RobotContainer::ConfigureBindings() {
-
   // Configure Swerve Bindings.
   auto fwd = [this]() -> units::meters_per_second_t {
     auto input = frc::ApplyDeadband(
@@ -93,6 +93,12 @@ void RobotContainer::ConfigureBindings() {
   m_swerveController.Button(9).ToggleOnTrue(
       m_swerve.SwerveCommand(fwd, strafe, rot));
   m_swerveController.Button(1).ToggleOnTrue(m_swerve.SwerveSlowCommand(fwd, strafe, rot, checkRed));
+
+  DriveToPoseTrigger.OnTrue(m_swerve.DriveToPoseCommand(m_swerve.GetPose(),
+                            AutoConstants::desiredPose, AutoConstants::waypointVector,
+                            AutoConstants::kMaxSpeed, AutoConstants::kMaxAcceleration,
+                            AutoConstants::kMaxAngularSpeed, AutoConstants::kMaxAngularAcceleration,
+                            m_isRed));
 
 }
 
