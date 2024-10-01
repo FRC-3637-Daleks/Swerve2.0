@@ -104,25 +104,16 @@ Drivetrain::~Drivetrain() {}
 void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
                        units::meters_per_second_t strafeSpeed,
                        units::radians_per_second_t angularSpeed,
-                       bool fieldRelative, bool isRed) {
+                       bool fieldRelative, bool isRed,
+                       units::millisecond_t period) {
   //  Use the kinematics model to get from the set of commanded speeds to a set
   //  of states that can be commanded to each module.
   auto states = kDriveKinematics.ToSwerveModuleStates(
-      frc::ChassisSpeeds{0_mps, 0_mps, 0_rad_per_s});
-
-  if (fieldRelative) {
-    if (isRed)
-      states = kDriveKinematics.ToSwerveModuleStates(
-          frc::ChassisSpeeds::FromFieldRelativeSpeeds(
-              -1 * forwardSpeed, -1 * strafeSpeed, angularSpeed, GetHeading()));
-    else
-      states = kDriveKinematics.ToSwerveModuleStates(
-          frc::ChassisSpeeds::FromFieldRelativeSpeeds(
-              forwardSpeed, strafeSpeed, angularSpeed, GetHeading()));
-  } else {
-    states = kDriveKinematics.ToSwerveModuleStates(
-        frc::ChassisSpeeds{forwardSpeed, strafeSpeed, angularSpeed});
-  }
+      frc::ChassisSpeeds::Discretize(
+        fieldRelative ? frc::ChassisSpeeds::FromFieldRelativeSpeeds(
+                          -1 * forwardSpeed, -1 * strafeSpeed, angularSpeed, GetHeading())
+                      : frc::ChassisSpeeds{forwardSpeed, strafeSpeed, angularSpeed},
+        period));
 
   // Occasionally a drive motor is commanded to go faster than its maximum
   // output can sustain. Desaturation lowers the module speeds so that no motor
@@ -312,7 +303,7 @@ frc2::CommandPtr Drivetrain::SwerveCommand(
     std::function<units::revolutions_per_minute_t()> rot) {
 
   return this->Run([=] {
-    Drive(forward(), strafe(), rot(), false, false);
+    Drive(forward(), strafe(), rot(), false, false, kPeriod);
   });
 }
 
@@ -321,7 +312,7 @@ frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot,
     std::function<bool()> isRed) {
-  return this->Run([=] { Drive(forward(), strafe(), rot(), true, isRed()); });
+  return this->Run([=] { Drive(forward(), strafe(), rot(), true, isRed(), kPeriod); });
 }
 
 frc2::CommandPtr Drivetrain::SwerveSlowCommand(
@@ -330,7 +321,7 @@ frc2::CommandPtr Drivetrain::SwerveSlowCommand(
     std::function<units::revolutions_per_minute_t()> rot,
     std::function<bool()> isRed) {
   return this->Run([=] {
-    Drive(forward() / 4, strafe() / 4, rot() / 5, true, isRed());
+    Drive(forward() / 4, strafe() / 4, rot() / 5, true, isRed(), kPeriod);
   });
 }
 

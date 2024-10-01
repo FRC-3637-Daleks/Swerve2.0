@@ -33,6 +33,7 @@ constexpr double kPTurn = 0.071; // 0.061
 constexpr double kITurn = 0.00;  // 0.00
 constexpr double kDTurn = 0.00;  // 0.0
 
+constexpr auto kPeriod = 20_ms;
 // Swerve Constants
 constexpr auto kTrackWidth =
     25_in; // Distance between centers of right and left wheels.
@@ -122,7 +123,8 @@ public:
   void Drive(units::meters_per_second_t forwardSpeed,
              units::meters_per_second_t strafeSpeed,
              units::radians_per_second_t angularSpeed, bool fieldRelative,
-             bool isRed);
+             bool isRed,
+             units::millisecond_t period);
 
   // Sets the state of each swerve module.
   void SetModuleStates(wpi::array<frc::SwerveModuleState, 4> desiredStates);
