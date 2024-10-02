@@ -340,15 +340,14 @@ frc2::CommandPtr Drivetrain::SwerveSlowCommand(
   });
 }
 
-frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d currentPose, 
-                                      frc::Pose2d desiredPose,
+frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
                                       std::vector<frc::Translation2d> waypoints,
                                       units::meters_per_second_t maxSpeed,
                                       units::meters_per_second_squared_t maxAccel,
                                       units::radians_per_second_t maxAngularSpeed,
                                       units::radians_per_second_squared_t maxAngularAccel,
                                       bool isRed) {
-
+  auto currentPose = GetPose();
   frc::TrajectoryConfig config{maxSpeed, maxAccel};
   config.SetKinematics(kDriveKinematics);
   frc::TrapezoidProfile<units::radians>::Constraints 
@@ -371,10 +370,6 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d currentPose,
                                      [this](auto moduleStates) {SetModuleStates(moduleStates);}).ToPtr();
 
   return frc2::cmd::Sequence(
-    frc2::InstantCommand([this, initialPose = trajectory.InitialPose()](){
-      ResetOdometry(initialPose);
-    },
-    {}).ToPtr(),
     std::move(m_swerveControllerCommand),
     frc2::InstantCommand(
       [this, isRed] { Drive(0_mps, 0_mps, 0_rad_per_s, true, isRed);}, {})

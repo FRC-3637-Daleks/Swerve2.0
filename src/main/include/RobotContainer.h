@@ -50,12 +50,13 @@ constexpr double kPThetaController = 0.5;
 constexpr frc::Pose2d desiredPose{8.3_m, .77_m, 0_deg};
 constexpr frc::Translation2d waypoint1{8.3_m, 4.1_m};
 constexpr frc::Translation2d waypoint2{8.3_m, 5.78_m};
-std::vector<frc::Translation2d> waypointVector{waypoint1, waypoint2};
+
+const std::vector<frc::Translation2d> waypointzVector{waypoint1, waypoint2};
 
 
 // Trapezoidal motion profile for the robot heading.
 const frc::TrapezoidProfile<units::radians>::Constraints
-    kThetaControllerConstraints{kMaxAngularSpeed, kMaxAngularAcceleration};
+  kThetaControllerConstraints{kMaxAngularSpeed, kMaxAngularAcceleration};
 } // namespace AutoConstants
 
 namespace OperatorConstants {
