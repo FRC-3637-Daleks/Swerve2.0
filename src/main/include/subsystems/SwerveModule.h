@@ -1,63 +1,28 @@
 #pragma once
 
-#include <ctre/phoenix6/CANcoder.hpp>
-#include <frc/AnalogInput.h>
-#include <frc/AnalogPotentiometer.h>
 #include <frc/geometry/Rotation2d.h>
 #include <frc/kinematics/SwerveModulePosition.h>
 #include <frc/kinematics/SwerveModuleState.h>
 
-#include <units/acceleration.h>
 #include <units/angle.h>
-#include <units/angular_acceleration.h>
 #include <units/angular_velocity.h>
 #include <units/length.h>
-#include <units/moment_of_inertia.h>
 #include <units/velocity.h>
-#include <units/voltage.h>
 
-#include <ctre/phoenix/motorcontrol/can/TalonFX.h>
+#include <ctre/phoenix6/CANcoder.hpp>
 #include <ctre/phoenix6/TalonFX.hpp>
-#include <numbers>
 
+// Only place constants here needed by other components
 namespace ModuleConstants {
 
-constexpr double NeutralDeadBand = 0.01;
-constexpr auto kCurrentLimitPeriod =
-    0.04_s; // Can exceed limit for 40ms seconds
-
-// Best defense against current
-constexpr double kMotorRampRate = 0.2; // Seconds from neutral to full output.
-
-constexpr auto kWheelDiameterIdeal = 4_in;
-constexpr auto kWheelDiameter = kWheelDiameterIdeal;
-constexpr auto kWheelMoment = .015_kg_sq_m;
-constexpr auto kTalonSpeedRPM = 6080;       // Website value
 // Values measured with the drivetrain suspended.
 constexpr auto kPhysicalMaxSpeed = 15.7_fps;
 
-constexpr double kDriveMotorCurrentLimit = 50; // Up to 80 A is okay
-constexpr double kDriveEncoderReduction = 6.75;     // reduction in drive motor
-constexpr auto kDriveAcceleration = 275;
-constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per
-                                                    // revolution of motor
-    kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;
-constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
+}
 
-constexpr double kSteerMotorCurrentLimit = 50; // An educated guess.
-constexpr double kSteerGearReduction = 150.0 / 7.0;
-constexpr auto kSteerMoment = 0.005_kg_sq_m;
-constexpr auto kSteerAcceleration =
-    1 * kSteerGearReduction; // One tps^2 Acceleration, needs testing
-
-} // namespace ModuleConstants
 
 // forward declaration
 class SwerveModuleSim;
-
-struct PIDCoefficients {
-  double kP, kI, kD, kFF, kIz;
-};
 
 /**
  * The SwerveModule helper class consists of a steer motor and a drive motor
@@ -74,9 +39,7 @@ class SwerveModule {
 public:
   // The ctor of the SwerveModule class.
   SwerveModule(const std::string name, const int driveMotorId,
-               const int steerMotorId, const int absoluteEncoderId,
-               const PIDCoefficients driveMotorPIDCoefficients,
-               const PIDCoefficients steerMotorPIDCoefficients);
+               const int steerMotorId, const int absoluteEncoderId);
 
   // Need to define destructor to make simulation code compile
   ~SwerveModule();
@@ -86,7 +49,8 @@ public:
 
   // This one is even more efficient than RefreshSignals as it groups ALL
   // swerve module signals into a single call
-  template <typename... T> static void RefreshAllSignals(T &...modules);
+  template <std::same_as<SwerveModule>... T> static void RefreshAllSignals(T &...modules);
+  template <auto N> static void RefreshAllSignals(std::array<SwerveModule, N> &modules);
 
   // Returns the meters driven based on encoder reading.
   units::meter_t GetModuleDistance();
@@ -102,6 +66,8 @@ public:
 
   // Combines GetModuleVelocity() and GetModuleHeading().
   frc::SwerveModuleState GetState();
+
+  const std::string& GetName() {return m_name;}
 
   void CoastMode(bool coast);
 
@@ -148,9 +114,15 @@ private:
 };
 
 // Template method must be defined in .h
-template <typename... T> void SwerveModule::RefreshAllSignals(T &...modules) {
+template <std::same_as<SwerveModule>... T> void SwerveModule::RefreshAllSignals(T &...modules) {
   // This passes all 4N signals to one call to RefreshAll
   ctre::phoenix6::BaseStatusSignal::RefreshAll(
       modules.m_drivePosition..., modules.m_driveVelocity...,
       modules.m_steerPosition..., modules.m_steerVelocity...);
+}
+
+template <auto N> void SwerveModule::RefreshAllSignals(std::array<SwerveModule, N> &modules) {
+  std::apply([](auto&& ...ms) {
+    RefreshAllSignals(std::forward<decltype(ms)>(ms)...);
+  }, modules);
 }
