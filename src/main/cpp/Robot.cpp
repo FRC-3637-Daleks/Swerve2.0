@@ -6,7 +6,6 @@
 
 #include <frc/DriverStation.h>
 #include <frc/smartdashboard/SmartDashboard.h>
-#include <frc/RobotController.h>
 #include <frc2/command/CommandScheduler.h>
 
 void Robot::RobotInit() {}

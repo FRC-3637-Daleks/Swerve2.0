@@ -1,5 +1,7 @@
 #include "subsystems/Drivetrain.h"
 
+#include <cmath> // Make sure to include cmath for std::fmod
+
 #include <frc/DataLogManager.h>
 #include <frc/I2C.h>
 #include <frc/SPI.h>
@@ -17,56 +19,8 @@
 #include <frc2/command/WaitCommand.h>
 #include <wpi/array.h>
 
-#include <units/time.h>
-#include <units/length.h>
-#include <units/velocity.h>
-#include <units/acceleration.h>
-#include <units/angle.h>
-#include <units/angular_velocity.h>
-#include <units/angular_acceleration.h>
-#include <units/force.h>
-
 #include <hal/SimDevice.h>
 #include <hal/simulation/SimDeviceData.h>
-
-namespace DriveConstants {
-constexpr auto kMaxSpeed = 15.7_fps;
-constexpr auto kWeight = 123_lb;
-constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
-constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
-
-constexpr auto kPeriod = 20_ms;
-
-constexpr double kPTurn = 0.071;
-constexpr double kITurn = 0.00;
-constexpr double kDTurn = 0.00;
-
-// Swerve Constants
-constexpr auto kTrackWidth =
-    25_in; // Distance between centers of right and left wheels.
-constexpr auto kWheelBase =
-    25_in; // Distance between centers of front and back wheels.
-// const auto kRadius = 19.5_in; // 19.5 inches
-const auto kRadius = units::meter_t(std::sqrt(.91));
-
-constexpr int kFrontLeftDriveMotorId = 1;
-constexpr int kRearLeftDriveMotorId = 3;
-constexpr int kFrontRightDriveMotorId = 5;
-constexpr int kRearRightDriveMotorId = 7;
-
-constexpr int kFrontLeftSteerMotorId = 2;
-constexpr int kRearLeftSteerMotorId = 4;
-constexpr int kFrontRightSteerMotorId = 6;
-constexpr int kRearRightSteerMotorId = 8;
-
-constexpr int kFrontLeftAbsoluteEncoderChannel = 9;
-constexpr int kRearLeftAbsoluteEncoderChannel = 10;
-constexpr int kFrontRightAbsoluteEncoderChannel = 11;
-constexpr int kRearRightAbsoluteEncoderChannel = 12;
-
-constexpr int kPDH = 25;
-
-} // namespace DriveConstants
 
 using namespace DriveConstants;
 
@@ -76,7 +30,10 @@ public:
       : m_gyroYaw(HALSIM_GetSimValueHandle(
             HALSIM_GetSimDeviceHandle("navX-Sensor[4]"), "Yaw")),
         m_poseSim(drivetrain.kDriveKinematics, drivetrain.GetHeading(),
-                  drivetrain.each_position()) {}
+                  {drivetrain.m_frontLeft.GetPosition(),
+                   drivetrain.m_frontRight.GetPosition(),
+                   drivetrain.m_rearLeft.GetPosition(),
+                   drivetrain.m_rearRight.GetPosition()}) {}
 
 public:
   hal::SimDouble m_gyroYaw;
@@ -84,36 +41,36 @@ public:
 };
 
 Drivetrain::Drivetrain()
-    : kDriveKinematics{
-        frc::Translation2d{ kWheelBase/2,  kTrackWidth/2},
-        frc::Translation2d{ kWheelBase/2, -kTrackWidth/2},
-        frc::Translation2d{-kWheelBase/2,  kTrackWidth/2},
-        frc::Translation2d{-kWheelBase/2, -kTrackWidth/2}},
-      m_modules{{
-        {"FL",
-          kFrontLeftDriveMotorId,
-          kFrontLeftSteerMotorId,
-          kFrontLeftAbsoluteEncoderChannel},
-        {"RL",
-          kRearLeftDriveMotorId,
-          kRearLeftSteerMotorId,
-          kRearLeftAbsoluteEncoderChannel},
-        {"FR",
-          kFrontRightDriveMotorId,
-          kFrontRightSteerMotorId,
-          kFrontRightAbsoluteEncoderChannel},
-        {"RR",
-          kRearRightDriveMotorId,
-          kRearRightSteerMotorId,
-          kRearRightAbsoluteEncoderChannel}
-      }},
+    : m_frontLeft{"FL",
+                  kFrontLeftDriveMotorId,
+                  kFrontLeftSteerMotorId,
+                  kFrontLeftAbsoluteEncoderChannel,
+                  kFrontLeftDriveMotorPIDCoefficients,
+                  kFrontLeftSteerMotorPIDCoefficients},
+      m_rearLeft{"RL",
+                 kRearLeftDriveMotorId,
+                 kRearLeftSteerMotorId,
+                 kRearLeftAbsoluteEncoderChannel,
+                 kRearLeftDriveMotorPIDCoefficients,
+                 kRearLeftSteerMotorPIDCoefficients},
+      m_frontRight{"FR",
+                   kFrontRightDriveMotorId,
+                   kFrontRightSteerMotorId,
+                   kFrontRightAbsoluteEncoderChannel,
+                   kFrontRightDriveMotorPIDCoefficients,
+                   kFrontRightSteerMotorPIDCoefficients},
+      m_rearRight{"RR",
+                  kRearRightDriveMotorId,
+                  kRearRightSteerMotorId,
+                  kRearRightAbsoluteEncoderChannel,
+                  kRearRightDriveMotorPIDCoefficients,
+                  kRearRightSteerMotorPIDCoefficients},
       m_gyro{frc::SPI::Port::kMXP},
-      m_pdh{kPDH, frc::PowerDistribution::ModuleType::kRev},
-      m_poseEstimator{
-        kDriveKinematics, GetGyroHeading(), each_position(),
-        frc::Pose2d()},
-      m_turnPID{kPTurn, kITurn, kDTurn,
-        {kMaxTurnRate, kMaxTurnAcceleration}},
+      m_poseEstimator{kDriveKinematics, GetGyroHeading(),
+                      wpi::array<frc::SwerveModulePosition, 4U>{
+                          m_frontLeft.GetPosition(), m_frontRight.GetPosition(),
+                          m_rearLeft.GetPosition(), m_rearRight.GetPosition()},
+                      frc::Pose2d()},
       m_sim_state(new DrivetrainSimulation(*this)) {
 
   frc::DataLogManager::Log(
@@ -125,10 +82,24 @@ frc::Pose2d Drivetrain::GetSimulatedGroundTruth() {
 void Drivetrain::Periodic() {
 
   // Do this once per loop
-  SwerveModule::RefreshAllSignals(m_modules);
+  SwerveModule::RefreshAllSignals(m_frontLeft, m_frontRight, m_rearLeft,
+                                  m_rearRight);
 
   // Update the odometry with the current gyro angle and module states.
-  m_poseEstimator.Update(GetGyroHeading(), each_position());
+  auto fl_pos = m_frontLeft.GetPosition();
+  auto fr_pos = m_frontRight.GetPosition();
+  auto rl_pos = m_rearLeft.GetPosition();
+  auto rr_pos = m_rearRight.GetPosition();
+
+  auto prev_pose = m_poseEstimator.GetEstimatedPosition();
+  m_poseEstimator.Update(GetGyroHeading(), {fl_pos, fr_pos, rl_pos, rr_pos});
+  auto new_pose = m_poseEstimator.GetEstimatedPosition();
+
+  auto rel_transform = new_pose - prev_pose;
+  auto dist = rel_transform.Translation().Norm();
+
+  auto corrected_pose = new_pose.TransformBy(
+      {0_m, -dist * DriveConstants::kOdometryCompensationFactor, 0_deg});
 
   this->UpdateDashboard();
 }
@@ -165,14 +136,22 @@ void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
   kDriveKinematics.DesaturateWheelSpeeds(&states, ModuleConstants::kPhysicalMaxSpeed);
 
   // Finally each of the desired states can be sent as commands to the modules.
-  for (int i = 0; i < kNumModules; i++)
-    m_modules[i].SetDesiredState(states[i]);
+  auto [fl, fr, rl, rr] = states;
+
+  m_frontLeft.SetDesiredState(fl);
+  m_frontRight.SetDesiredState(fr);
+  m_rearLeft.SetDesiredState(rl);
+  m_rearRight.SetDesiredState(rr);
 }
 
 void Drivetrain::SetModuleStates(
     wpi::array<frc::SwerveModuleState, 4> desiredStates) {
-  for (int i = 0; i < kNumModules; i++)
-    m_modules[i].SetDesiredState(desiredStates[i]);
+  kDriveKinematics.DesaturateWheelSpeeds(&desiredStates,
+                                         ModuleConstants::kPhysicalMaxSpeed);
+  m_frontLeft.SetDesiredState(desiredStates[0]);
+  m_frontRight.SetDesiredState(desiredStates[1]);
+  m_rearLeft.SetDesiredState(desiredStates[2]);
+  m_rearRight.SetDesiredState(desiredStates[3]);
 }
 
 frc::Rotation2d Drivetrain::GetHeading() { return GetPose().Rotation(); }
@@ -187,19 +166,31 @@ void Drivetrain::ZeroHeading() {
 }
 
 void Drivetrain::ZeroAbsEncoders() {
-  for (auto &m : m_modules) m.ZeroAbsEncoders();
+  m_frontLeft.ZeroAbsEncoders();
+  m_frontRight.ZeroAbsEncoders();
+  m_rearLeft.ZeroAbsEncoders();
+  m_rearRight.ZeroAbsEncoders();
 }
 
 void Drivetrain::SetAbsEncoderOffset() {
-  for (auto &m : m_modules) m.SetEncoderOffset();
+  m_frontLeft.SetEncoderOffset();
+  m_frontRight.SetEncoderOffset();
+  m_rearLeft.SetEncoderOffset();
+  m_rearRight.SetEncoderOffset();
 }
 
 void Drivetrain::SyncEncoders() {
-  for (auto &m : m_modules) m.SyncEncoders();
+  m_frontLeft.SyncEncoders();
+  m_frontRight.SyncEncoders();
+  m_rearLeft.SyncEncoders();
+  m_rearRight.SyncEncoders();
 }
 
 void Drivetrain::CoastMode(bool coast) {
-  for (auto &m : m_modules) m.CoastMode(coast);
+  m_frontLeft.CoastMode(coast);
+  m_frontRight.CoastMode(coast);
+  m_rearLeft.CoastMode(coast);
+  m_rearRight.CoastMode(coast);
 }
 
 units::degrees_per_second_t Drivetrain::GetTurnRate() {
@@ -207,29 +198,45 @@ units::degrees_per_second_t Drivetrain::GetTurnRate() {
 }
 
 frc::Pose2d Drivetrain::GetPose() {
-  return m_poseEstimator.GetEstimatedPosition();
+  auto translation = m_poseEstimator.GetEstimatedPosition();
+  auto new_translation = (translation + m_odometryCompensation).Translation();
+  return frc::Pose2d{new_translation,
+                     m_poseEstimator.GetEstimatedPosition().Rotation()};
 }
 
 frc::ChassisSpeeds Drivetrain::GetSpeed() {
-  return kDriveKinematics.ToChassisSpeeds(each_state());
+  return kDriveKinematics.ToChassisSpeeds(
+      m_frontLeft.GetState(), m_frontRight.GetState(), m_rearLeft.GetState(),
+      m_rearRight.GetState());
 }
 
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
-      GetGyroHeading(), each_position(), pose);
+      GetGyroHeading(),
+      {m_frontLeft.GetPosition(), m_frontRight.GetPosition(),
+       m_rearLeft.GetPosition(), m_rearRight.GetPosition()},
+      pose);
 }
 
 void Drivetrain::UpdateDashboard() {
   const auto robot_center = this->GetPose();
   m_field.SetRobotPose(this->GetPose());
 
-  int xs[] = {1, 1, -1, -1};
-  int ys[] = {1, -1, 1, -1};
-  for (int i = 0; i < kNumModules; i++) {
-    const auto module_pose = robot_center.TransformBy(
-      {xs[i]*kWheelBase/2, ys[i]*kTrackWidth/2, m_modules[i].GetState().angle});
-    m_field.GetObject(m_modules[i].GetName())->SetPose(module_pose);
-  }
+  const auto fl_pose = robot_center.TransformBy(
+      {kWheelBase / 2, kTrackWidth / 2, m_frontLeft.GetState().angle});
+  m_field.GetObject("FL")->SetPose(fl_pose);
+
+  const auto fr_pose = robot_center.TransformBy(
+      {kWheelBase / 2, -kTrackWidth / 2, m_frontRight.GetState().angle});
+  m_field.GetObject("FR")->SetPose(fr_pose);
+
+  const auto rl_pose = robot_center.TransformBy(
+      {-kWheelBase / 2, kTrackWidth / 2, m_rearLeft.GetState().angle});
+  m_field.GetObject("RL")->SetPose(rl_pose);
+
+  const auto rr_pose = robot_center.TransformBy(
+      {-kWheelBase / 2, -kTrackWidth / 2, m_rearRight.GetState().angle});
+  m_field.GetObject("RR")->SetPose(rr_pose);
 
   frc::SmartDashboard::PutData("Field", &m_field);
 
@@ -237,16 +244,29 @@ void Drivetrain::UpdateDashboard() {
                                   m_gyro.IsCalibrating());
   frc::SmartDashboard::PutNumber("Swerve/Robot heading",
                                  GetHeading().Degrees().value());
-  auto wheel_speeds = each_module([](SwerveModule& m) {
-    return m.GetState().speed.convert<units::meters_per_second>().value();
-  });
+  double swerveStates[] = {m_frontLeft.GetState().angle.Radians().value(),
+                           m_frontLeft.GetState().speed.value(),
+                           m_frontRight.GetState().angle.Radians().value(),
+                           m_frontRight.GetState().speed.value(),
+                           m_rearLeft.GetState().angle.Radians().value(),
+                           m_rearLeft.GetState().speed.value(),
+                           m_rearRight.GetState().angle.Radians().value(),
+                           m_rearRight.GetState().speed.value()};
+  frc::SmartDashboard::PutNumberArray(
+      "Swerve/Swerve Module States",
+      swerveStates); // Have to initialize array separately due as an error
+                     // occurs when an array attempts to initialize as a
+                     // parameter.
   frc::SmartDashboard::PutNumber(
       "Robot Speed",
-      std::accumulate(wheel_speeds.begin(), wheel_speeds.end(), 0.0)/4);
+      (swerveStates[1] + swerveStates[3] + swerveStates[5] + swerveStates[7]) /
+          4);
   frc::SmartDashboard::PutData("zeroEncodersCommand",
                                zeroEncodersCommand.get());
-
-  for (auto &m : m_modules) m.UpdateDashboard();
+  m_frontLeft.UpdateDashboard();
+  m_rearLeft.UpdateDashboard();
+  m_frontRight.UpdateDashboard();
+  m_rearRight.UpdateDashboard();
 
   frc::SmartDashboard::PutNumber("Swerve/Gyro", m_gyro.GetAngle());
 
@@ -255,10 +275,48 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutData("Swerve/TurnPIDController", &m_turnPID);
 }
 
+void Drivetrain::SimulationPeriodic() {
+  if (!m_sim_state)
+    return;
+
+  m_frontLeft.SimulationPeriodic();
+  m_rearLeft.SimulationPeriodic();
+  m_frontRight.SimulationPeriodic();
+  m_rearRight.SimulationPeriodic();
+
+  // Assume perfect kinematics and get the new gyro angle
+  const auto chassis_speed = kDriveKinematics.ToChassisSpeeds(
+      m_frontLeft.GetState(), m_frontRight.GetState(), m_rearLeft.GetState(),
+      m_rearRight.GetState());
+
+  const auto theta = m_sim_state->m_poseSim.GetPose().Rotation();
+  const auto new_theta =
+      theta.RotateBy(units::radian_t{chassis_speed.omega * 20_ms});
+  // robot nav x defines clockwise as positive instead of counterclockwise
+  m_sim_state->m_gyroYaw.Set(-new_theta.Degrees().value());
+
+  // Feed this simulated gyro angle into the odometry to get simulated position
+  auto fl_pos = m_frontLeft.GetPosition();
+  auto fr_pos = m_frontRight.GetPosition();
+  auto rl_pos = m_rearLeft.GetPosition();
+  auto rr_pos = m_rearRight.GetPosition();
+
+  // Modify this to simulate different kinds of odom error
+  fl_pos.angle = fl_pos.angle.Degrees() * 1.02;
+  fr_pos.angle = fr_pos.angle.Degrees() * 0.99;
+  rl_pos.angle = rl_pos.angle.Degrees();
+  rr_pos.angle = rr_pos.angle.Degrees() * 1.01;
+
+  m_sim_state->m_poseSim.Update(new_theta, {fl_pos, fr_pos, rl_pos, rr_pos});
+
+  m_field.GetObject("simulation")->SetPose(m_sim_state->m_poseSim.GetPose());
+}
+
 frc2::CommandPtr Drivetrain::SwerveCommand(
     std::function<units::meters_per_second_t()> forward,
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot) {
+
   return this->Run([=] {
     Drive(forward(), strafe(), rot(), false, false);
   });
@@ -325,6 +383,7 @@ frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
 frc2::CommandPtr Drivetrain::ZeroAbsEncodersCommand() {
   return this
       ->RunOnce([&] {
+        fmt::print("inside ZeroAbsEncodersCommand");
         ZeroAbsEncoders();
       })
       .IgnoringDisable(true);
@@ -343,6 +402,7 @@ frc2::CommandPtr Drivetrain::ConfigAbsEncoderCommand() {
   return this
       ->StartEnd(
           [&] {
+            fmt::print("inside the configAbsCommand ********* ");
             CoastMode(true);
             ZeroAbsEncoders();
           },
@@ -353,25 +413,4 @@ frc2::CommandPtr Drivetrain::ConfigAbsEncoderCommand() {
       .AndThen(frc2::WaitCommand(0.5_s).ToPtr())
       .AndThen(this->RunOnce([&] { SyncEncoders(); }))
       .IgnoringDisable(true);
-}
-
-void Drivetrain::SimulationPeriodic() {
-  if (!m_sim_state)
-    return;
-
-  for (auto &m : m_modules) m.SimulationPeriodic();
-
-  // Assume perfect kinematics and get the new gyro angle
-  const auto chassis_speed = kDriveKinematics.ToChassisSpeeds(each_state());
-
-  const auto theta = m_sim_state->m_poseSim.GetPose().Rotation();
-  const auto new_theta =
-      theta.RotateBy(units::radian_t{chassis_speed.omega * 20_ms});
-  // robot nav x defines clockwise as positive instead of counterclockwise
-  m_sim_state->m_gyroYaw.Set(-new_theta.Degrees().value());
-
-  // Feed this simulated gyro angle into the odometry to get simulated position
-  m_sim_state->m_poseSim.Update(new_theta, each_position());
-
-  m_field.GetObject("simulation")->SetPose(m_sim_state->m_poseSim.GetPose());
 }

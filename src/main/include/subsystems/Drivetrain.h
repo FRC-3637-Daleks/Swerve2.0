@@ -1,26 +1,95 @@
 #pragma once
+// using namespace units::literals;
+// #include <units/units.h>
 
 #include <AHRS.h>
+#include <cmath>
 #include <frc/PowerDistribution.h>
 #include <frc/estimator/SwerveDrivePoseEstimator.h>
 #include <frc/geometry/Pose2d.h>
 #include <frc/kinematics/SwerveDriveKinematics.h>
+#include <frc/kinematics/SwerveDriveOdometry.h>
+#include <frc/simulation/LinearSystemSim.h>
 #include <frc/smartdashboard/Field2d.h>
 #include <frc2/command/CommandPtr.h>
 #include <frc2/command/SubsystemBase.h>
 
 #include <frc/controller/ProfiledPIDController.h>
 
-#include <units/velocity.h>
-#include <units/acceleration.h>
-#include <units/angular_velocity.h>
-#include <units/angular_acceleration.h>
-
 #include <memory>
 #include <numbers>
-#include <utility>
 
 #include "SwerveModule.h"
+
+namespace DriveConstants {
+constexpr auto kMaxTeleopSpeed = 15.7_fps;
+constexpr auto kWeight = 123_lb;
+constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
+constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
+
+// NOTE: Guess value!
+
+constexpr double kPTurn = 0.071; // 0.061
+constexpr double kITurn = 0.00;  // 0.00
+constexpr double kDTurn = 0.00;  // 0.0
+
+constexpr auto kPeriod = 20_ms;
+// Swerve Constants
+constexpr auto kTrackWidth =
+    25_in; // Distance between centers of right and left wheels.
+constexpr auto kWheelBase =
+    25_in; // Distance between centers of front and back wheels.
+// const auto kRadius = 19.5_in; // 19.5 inches
+const auto kRadius = units::meter_t(std::sqrt(.91));
+
+constexpr int kFrontLeftDriveMotorId = 1;
+constexpr int kRearLeftDriveMotorId = 3;
+constexpr int kFrontRightDriveMotorId = 5;
+constexpr int kRearRightDriveMotorId = 7;
+
+constexpr int kFrontLeftSteerMotorId = 2;
+constexpr int kRearLeftSteerMotorId = 4;
+constexpr int kFrontRightSteerMotorId = 6;
+constexpr int kRearRightSteerMotorId = 8;
+
+constexpr int kFrontLeftAbsoluteEncoderChannel = 9;
+constexpr int kRearLeftAbsoluteEncoderChannel = 10;
+constexpr int kFrontRightAbsoluteEncoderChannel = 11;
+constexpr int kRearRightAbsoluteEncoderChannel = 12;
+
+// XXX Roughly estimated values, needs to be properly tuned.
+constexpr struct PIDCoefficients kFrontLeftDriveMotorPIDCoefficients {
+  0, 0.00, 0, 0, 0
+};
+constexpr struct PIDCoefficients kRearLeftDriveMotorPIDCoefficients {
+  0, 0.00, 0, 0, 0
+};
+constexpr struct PIDCoefficients kFrontRightDriveMotorPIDCoefficients {
+  0, 0.00, 0, 0, 0
+};
+constexpr struct PIDCoefficients kRearRightDriveMotorPIDCoefficients {
+  0, 0.00, 0, 0, 0
+};
+
+constexpr struct PIDCoefficients kFrontLeftSteerMotorPIDCoefficients {
+  10.009775171065494, 0.0, 0.05004887585532747, 0, 0
+};
+constexpr struct PIDCoefficients kRearLeftSteerMotorPIDCoefficients {
+  10.009775171065494, 0.0, 0.05004887585532747, 0, 0
+};
+constexpr struct PIDCoefficients kFrontRightSteerMotorPIDCoefficients {
+  10.009775171065494, 0.0, 0.05004887585532747, 0, 0
+};
+constexpr struct PIDCoefficients kRearRightSteerMotorPIDCoefficients {
+  10.009775171065494, 0.0, 0.05004887585532747, 0, 0
+};
+
+constexpr double kS = 0.0545;
+
+constexpr double kOdometryCompensationFactor = 0.05;
+
+
+} // namespace DriveConstants
 
 // Forward Declaration
 class DrivetrainSimulation;
@@ -89,7 +158,19 @@ public:
   // gyro angle.
   void ResetOdometry(const frc::Pose2d &pose);
 
-  frc::SwerveDriveKinematics<4> kDriveKinematics;
+  // The kinematics model for a swerve drive. Once given the positions of each
+  // module with the robot's center as the origin, the SwerveDriveKinematics
+  // class will convert between chassis speeds (translation and rotation) and
+  // module states (velocity and angle).
+  frc::SwerveDriveKinematics<4> kDriveKinematics{
+      frc::Translation2d(DriveConstants::kWheelBase / 2,
+                         DriveConstants::kTrackWidth / 2),
+      frc::Translation2d(DriveConstants::kWheelBase / 2,
+                         -DriveConstants::kTrackWidth / 2),
+      frc::Translation2d(-DriveConstants::kWheelBase / 2,
+                         DriveConstants::kTrackWidth / 2),
+      frc::Translation2d(-DriveConstants::kWheelBase / 2,
+                         -DriveConstants::kTrackWidth / 2)};
 
   // Display useful information on Shuffleboard.
   void UpdateDashboard();
@@ -133,39 +214,23 @@ public:
 
   frc2::CommandPtr ConfigAbsEncoderCommand();
 
-  // Returns a command that stops the robot.
-  frc2::CommandPtr BrakeCommand();
-
-  frc2::CommandPtr TurnToAngleCommand(units::degree_t angle);
-
-private:
-  // magic to make doing stuff for every module easier
-  auto each_module(auto&& fn)
-  {
-    return std::apply([fn = std::forward<decltype(fn)>(fn)](auto&&... ms)
-    {
-      return wpi::array{
-        std::forward<decltype(fn)>(fn)(
-          std::forward<decltype(ms)>(ms))...};
-    }, m_modules);
-  }
-
-  auto each_position() {
-    return each_module([](SwerveModule &m) {return m.GetPosition();});
-  }
-
-  auto each_state() {
-    return each_module([](SwerveModule &m) {return m.GetState();});
-  }
+  /**
+   * Use robot relative speeds and a dedicated angle to properly control
+   * rotation in autonomous.
+   *
+   * @param angle The commanded angle
+   * @param forward The commanded forward velocity, robot relative
+   * @param strafe The commanded strafe velocity, robot relative
+   * @param isRed Correctly orient robot if we are on the red alliance or not.
+   */
 
 private:
-  enum module_id {
-    kFrontLeft=0, kFrontRight, kRearLeft, kRearRight, kNumModules};
-  std::array<SwerveModule, kNumModules> m_modules;
+  SwerveModule m_frontLeft;
+  SwerveModule m_rearLeft;
+  SwerveModule m_frontRight;
+  SwerveModule m_rearRight;
 
   AHRS m_gyro;
-
-  frc::PowerDistribution m_pdh;
 
   // Pose Estimator for estimating the robot's position on the field.
   frc::SwerveDrivePoseEstimator<4> m_poseEstimator;
@@ -173,8 +238,16 @@ private:
   // Field widget for Shuffleboard.
   frc::Field2d m_field;
 
-  frc::ProfiledPIDController<units::degree> m_turnPID;
+  frc::PowerDistribution m_pdh{25, frc::PowerDistribution::ModuleType::kRev};
+
+  frc::ProfiledPIDController<units::degree> m_turnPID{
+      DriveConstants::kPTurn,
+      DriveConstants::kITurn,
+      DriveConstants::kDTurn,
+      {DriveConstants::kMaxTurnRate, DriveConstants::kMaxTurnAcceleration}};
   frc2::CommandPtr zeroEncodersCommand{ZeroAbsEncodersCommand()};
+
+  frc::Transform2d m_odometryCompensation{0_m, 0_m, 0_deg};
 
 private:
   friend class DrivetrainSimulation;
