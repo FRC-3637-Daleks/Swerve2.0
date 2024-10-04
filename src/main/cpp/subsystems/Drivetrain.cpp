@@ -117,8 +117,8 @@ Drivetrain::Drivetrain()
         frc::Pose2d()},
       m_turnPID{kPTurn, kITurn, kDTurn,
         {kMaxTurnRate, kMaxTurnAcceleration}},
-        m_thetaPID{5, 0.0, 0.0, {kMaxTurnRate, kMaxTurnAcceleration}},
-      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(3.6, 0.0, 0.0), 
+        m_thetaPID{5.2, 0.0, 0.0, {kMaxTurnRate, kMaxTurnAcceleration}},
+      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(3.62, 0.0, 0.0), 
       m_holonomicController(m_XYController, m_XYController, m_thetaPID){
 
   frc::DataLogManager::Log(
@@ -127,6 +127,8 @@ Drivetrain::Drivetrain()
 frc::Pose2d Drivetrain::GetSimulatedGroundTruth() {
   return m_sim_state->m_poseSim.GetPose();
 }
+
+
 void Drivetrain::Periodic() {
 
   // Do this once per loop
@@ -215,9 +217,30 @@ frc::Pose2d Drivetrain::GetPose() {
   return m_poseEstimator.GetEstimatedPosition();
 }
 
-frc::ChassisSpeeds Drivetrain::GetSpeed() {
+frc::ChassisSpeeds Drivetrain::GetChassisSpeed() {
   return kDriveKinematics.ToChassisSpeeds(each_state());
 }
+
+units::meters_per_second_t Drivetrain::GetSpeed(){
+  auto ret = [=]{ 
+    auto vx = GetChassisSpeed().vx.to<double>();
+    auto vy = GetChassisSpeed().vy.to<double>();
+    auto speed = std::sqrt((pow(vx, 2))+(pow(vy, 2)));
+
+    return (speed * 1_mps);};
+  return ret();
+}
+
+bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
+  auto caca = [=]{
+  frc::Pose2d currentPose = GetPose();
+  frc::Pose2d poseError = currentPose.RelativeTo(desiredPose);
+  return (poseError.X() < tolerance.X()) &&
+         (poseError.Y() < tolerance.Y()) &&
+         (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees()) &&
+         GetSpeed() < .02_mps && GetTurnRate() < 3_deg_per_s ;};
+    return caca();
+} 
 
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
@@ -334,18 +357,10 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
     m_holonomicController.SetTolerance(tolerance);
     auto states = m_holonomicController.Calculate(
         currentPose, desiredPose, endVelo, desiredRot);
+        std::cout << GetSpeed().to<double>() << std::endl;
     Drive(states.vx, states.vy, states.omega, false, isRed);})
   .Until([this, desiredPose, tolerance] {
-    auto currentPose = GetPose();
-    frc::Pose2d poseError = {
-    (std::abs(currentPose.X().to<double>() - desiredPose.X().to<double>()) * 1_m),
-    (std::abs(currentPose.Y().to<double>() - desiredPose.Y().to<double>()) * 1_m),
-    (std::abs(currentPose.Rotation().Degrees().to<double>() - 
-     desiredPose.Rotation().Degrees().to<double>()) * 1_deg)};
-    return m_holonomicController.AtReference() && 
-      (poseError.X() < tolerance.X()) &&
-      (poseError.Y() < tolerance.Y()) &&
-      (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees());
+    return AtPose(desiredPose, tolerance); 
           });
   return ret_cmd;
 };
