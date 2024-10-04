@@ -39,10 +39,10 @@ constexpr double kPXController = 0.5;
 constexpr double kPYController = 0.5;
 constexpr double kPThetaController = 0.5;
 
-constexpr frc::Pose2d desiredPose{8.3_m, .77_m, 0_deg};
+constexpr frc::Pose2d desiredPose{1.3_m, 1.1_m, -120_deg};
+
 constexpr frc::Translation2d waypoint1{8.3_m, 4.1_m};
 constexpr frc::Translation2d waypoint2{8.3_m, 5.78_m};
-
 const std::vector<frc::Translation2d> waypointzVector{waypoint1, waypoint2};
 
 // Trapezoidal motion profile for the robot heading.
@@ -160,11 +160,7 @@ void RobotContainer::ConfigureBindings() {
       m_swerve.SwerveCommand(fwd, strafe, rot));
   m_swerveController.Button(1).ToggleOnTrue(m_swerve.SwerveSlowCommand(fwd, strafe, rot, checkRed));
 
-  DriveToPoseTrigger.WhileTrue(m_swerve.DriveToPoseCommand(
-                            AutoConstants::desiredPose, AutoConstants::waypointzVector,
-                            AutoConstants::kMaxSpeed, AutoConstants::kMaxAcceleration,
-                            AutoConstants::kMaxAngularSpeed, AutoConstants::kMaxAngularAcceleration,
-                            m_isRed));
+  DriveToPoseTrigger.OnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose, m_isRed));
 
 }
 

@@ -10,6 +10,7 @@
 #include <frc2/command/SubsystemBase.h>
 
 #include <frc/controller/ProfiledPIDController.h>
+#include <frc/controller/HolonomicDriveController.h>
 
 #include <units/velocity.h>
 #include <units/acceleration.h>
@@ -114,13 +115,19 @@ public:
                     std::function<units::revolutions_per_minute_t()> rot,
                     std::function<bool()> isRed);
 
-  frc2::CommandPtr DriveToPoseCommand(frc::Pose2d desiredPose,
-                                      std::vector<frc::Translation2d> waypoints,
-                                      units::meters_per_second_t maxSpeed,
-                                      units::meters_per_second_squared_t maxAccel,
-                                      units::radians_per_second_t maxAngularSpeed,
-                                      units::radians_per_second_squared_t maxAngularAccel,
-                                      bool isRed);
+  // frc2::CommandPtr FollowPathCommand(frc::Pose2d desiredPose,
+  //                                     std::vector<frc::Translation2d> waypoints,
+  //                                     units::meters_per_second_t maxSpeed,
+  //                                     units::meters_per_second_squared_t maxAccel,
+  //                                     units::radians_per_second_t maxAngularSpeed,
+  //                                     units::radians_per_second_squared_t maxAngularAccel,
+  //                                     bool isRed);
+
+frc2::CommandPtr DriveToPoseCommand(
+    frc::Pose2d desiredPose,
+    bool isRed,
+    units::meters_per_second_t endVelo = units::meters_per_second_t(0.0),
+    frc::Pose2d tolerance = frc::Pose2d(0.06_m, 0.06_m, 3_deg));
 
   // Returns a command that zeroes the robot heading.
   frc2::CommandPtr ZeroHeadingCommand();
@@ -173,7 +180,10 @@ private:
   // Field widget for Shuffleboard.
   frc::Field2d m_field;
 
-  frc::ProfiledPIDController<units::degree> m_turnPID;
+  frc::ProfiledPIDController<units::degrees> m_turnPID;
+  frc::ProfiledPIDController<units::radians> m_thetaPID;
+  frc::PIDController m_XYController;
+  frc::HolonomicDriveController m_holonomicController;
   frc2::CommandPtr zeroEncodersCommand{ZeroAbsEncodersCommand()};
 
 private:

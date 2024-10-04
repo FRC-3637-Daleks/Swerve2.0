@@ -30,6 +30,7 @@
 #include <hal/simulation/SimDeviceData.h>
 
 #include <numeric>
+#include <iostream>
 
 namespace DriveConstants {
 constexpr auto kMaxSpeed = 15.7_fps;
@@ -116,7 +117,9 @@ Drivetrain::Drivetrain()
         frc::Pose2d()},
       m_turnPID{kPTurn, kITurn, kDTurn,
         {kMaxTurnRate, kMaxTurnAcceleration}},
-      m_sim_state(new DrivetrainSimulation(*this)) {
+        m_thetaPID{5, 0.0, 0.0, {kMaxTurnRate, kMaxTurnAcceleration}},
+      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(3.6, 0.0, 0.0), 
+      m_holonomicController(m_XYController, m_XYController, m_thetaPID){
 
   frc::DataLogManager::Log(
       fmt::format("Finished initializing drivetrain subsystem."));
@@ -284,41 +287,58 @@ frc2::CommandPtr Drivetrain::SwerveSlowCommand(
   });
 }
 
+// frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
+//                                       std::vector<frc::Translation2d> waypoints,
+//                                       units::meters_per_second_t maxSpeed,
+//                                       units::meters_per_second_squared_t maxAccel,
+//                                       units::radians_per_second_t maxAngularSpeed,
+//                                       units::radians_per_second_squared_t maxAngularAccel,
+//                                       bool isRed) {
+//   auto currentPose = GetPose();
+//   frc::TrajectoryConfig config{maxSpeed, maxAccel};
+//   config.SetKinematics(kDriveKinematics);
+//   frc::TrapezoidProfile<units::radians>::Constraints 
+//     kTurnConstraints{maxAngularSpeed, maxAngularAccel};
+
+//   auto trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
+//     currentPose, waypoints, desiredPose, config);
+
+
+//   frc::ProfiledPIDController<units::radians> thetaController{
+//                                              kPTurn, kITurn, kDTurn, kTurnConstraints};
+//   thetaController.EnableContinuousInput(units::radian_t{-std::numbers::pi},
+//                                         units::radian_t{std::numbers::pi});
+//   frc2::CommandPtr m_swerveControllerCommand =
+//     frc2::SwerveControllerCommand<4>(trajectory,
+//                                      [this]() {return GetPose();}, kDriveKinematics,
+//                                      frc::PIDController{7.0, 0.0, 0.0},
+//                                      frc::PIDController{5.0, 0.0, 0.0},
+//                                      thetaController,
+//                                      [this](auto moduleStates) {SetModuleStates(moduleStates);}).ToPtr();
+
+//   return frc2::cmd::Sequence(
+//     std::move(m_swerveControllerCommand),
+//     frc2::InstantCommand(
+//       [this, isRed] { Drive(0_mps, 0_mps, 0_rad_per_s, true, isRed);}, {})
+//       .ToPtr());
+// }
+
 frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
-                                      std::vector<frc::Translation2d> waypoints,
-                                      units::meters_per_second_t maxSpeed,
-                                      units::meters_per_second_squared_t maxAccel,
-                                      units::radians_per_second_t maxAngularSpeed,
-                                      units::radians_per_second_squared_t maxAngularAccel,
-                                      bool isRed) {
-  auto currentPose = GetPose();
-  frc::TrajectoryConfig config{maxSpeed, maxAccel};
-  config.SetKinematics(kDriveKinematics);
-  frc::TrapezoidProfile<units::radians>::Constraints 
-    kTurnConstraints{maxAngularSpeed, maxAngularAccel};
-
-  auto trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
-    currentPose, waypoints, desiredPose, config);
-
-
-  frc::ProfiledPIDController<units::radians> thetaController{
-                                             kPTurn, kITurn, kDTurn, kTurnConstraints};
-  thetaController.EnableContinuousInput(units::radian_t{-std::numbers::pi},
-                                        units::radian_t{std::numbers::pi});
-  frc2::CommandPtr m_swerveControllerCommand =
-    frc2::SwerveControllerCommand<4>(trajectory,
-                                     [this]() {return GetPose();}, kDriveKinematics,
-                                     frc::PIDController{7.0, 0.0, 0.0},
-                                     frc::PIDController{5.0, 0.0, 0.0},
-                                     thetaController,
-                                     [this](auto moduleStates) {SetModuleStates(moduleStates);}).ToPtr();
-
-  return frc2::cmd::Sequence(
-    std::move(m_swerveControllerCommand),
-    frc2::InstantCommand(
-      [this, isRed] { Drive(0_mps, 0_mps, 0_rad_per_s, true, isRed);}, {})
-      .ToPtr());
-}
+                                      bool isRed,
+                                      units::meters_per_second_t endVelo,
+                                      frc::Pose2d tolerance)  {
+  auto ret_cmd = Run([=]  {
+    auto currentPose = GetPose();
+    auto currentRot = currentPose.Rotation();
+    auto desiredRot = desiredPose.Rotation();
+    m_holonomicController.SetEnabled(true);
+    m_holonomicController.SetTolerance(tolerance);
+    auto states = m_holonomicController.Calculate(
+        currentPose, desiredPose, endVelo, desiredRot);
+    Drive(states.vx, states.vy, states.omega, false, isRed);})
+  .Until([this] { return m_holonomicController.AtReference();});
+  return ret_cmd;
+};
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
   return this->RunOnce([&] { ZeroHeading(); });
