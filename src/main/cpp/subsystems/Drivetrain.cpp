@@ -337,8 +337,6 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
     Drive(states.vx, states.vy, states.omega, false, isRed);})
   .Until([this, desiredPose, tolerance] {
     auto currentPose = GetPose();
-    auto currentRot = currentPose.Rotation();
-    auto desiredRot = desiredPose.Rotation();
     frc::Pose2d poseError = {
     (std::abs(currentPose.X().to<double>() - desiredPose.X().to<double>()) * 1_m),
     (std::abs(currentPose.Y().to<double>() - desiredPose.Y().to<double>()) * 1_m),
