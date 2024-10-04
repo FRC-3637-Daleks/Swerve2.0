@@ -142,7 +142,7 @@ private:
   // magic to make doing stuff for every module easier
   auto each_module(auto&& fn)
   {
-    return std::apply([fn = std::forward<decltype(fn)>(fn)](auto&&... ms)
+    return std::apply([&fn](auto&&... ms)
     {
       return wpi::array{
         std::forward<decltype(fn)>(fn)(

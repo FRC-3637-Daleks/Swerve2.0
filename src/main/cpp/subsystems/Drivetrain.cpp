@@ -29,6 +29,8 @@
 #include <hal/SimDevice.h>
 #include <hal/simulation/SimDeviceData.h>
 
+#include <numeric>
+
 namespace DriveConstants {
 constexpr auto kMaxSpeed = 15.7_fps;
 constexpr auto kWeight = 123_lb;
