@@ -329,14 +329,26 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
                                       frc::Pose2d tolerance)  {
   auto ret_cmd = Run([=]  {
     auto currentPose = GetPose();
-    auto currentRot = currentPose.Rotation();
     auto desiredRot = desiredPose.Rotation();
     m_holonomicController.SetEnabled(true);
     m_holonomicController.SetTolerance(tolerance);
     auto states = m_holonomicController.Calculate(
         currentPose, desiredPose, endVelo, desiredRot);
     Drive(states.vx, states.vy, states.omega, false, isRed);})
-  .Until([this] { return m_holonomicController.AtReference();});
+  .Until([this, desiredPose, tolerance] {
+    auto currentPose = GetPose();
+    auto currentRot = currentPose.Rotation();
+    auto desiredRot = desiredPose.Rotation();
+    frc::Pose2d poseError = {
+    (std::abs(currentPose.X().to<double>() - desiredPose.X().to<double>()) * 1_m),
+    (std::abs(currentPose.Y().to<double>() - desiredPose.Y().to<double>()) * 1_m),
+    (std::abs(currentPose.Rotation().Degrees().to<double>() - 
+     desiredPose.Rotation().Degrees().to<double>()) * 1_deg)};
+    return m_holonomicController.AtReference() && 
+      (poseError.X() < tolerance.X()) &&
+      (poseError.Y() < tolerance.Y()) &&
+      (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees());
+          });
   return ret_cmd;
 };
 
