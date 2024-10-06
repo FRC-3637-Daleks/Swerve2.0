@@ -44,6 +44,14 @@ constexpr double kPTurn = 0.071;
 constexpr double kITurn = 0.00;
 constexpr double kDTurn = 0.00;
 
+constexpr double kPTheta = 8.78; //3.62
+constexpr double kITheta = 11.09;
+constexpr double kDTheta = 1.4;
+
+constexpr double kPXY =  8.87; //Kc = 14.78
+constexpr double kIXY = 11.09;
+constexpr double kDXY = 1.77;
+
 // Swerve Constants
 constexpr auto kTrackWidth =
     25_in; // Distance between centers of right and left wheels.
@@ -117,8 +125,10 @@ Drivetrain::Drivetrain()
         frc::Pose2d()},
       m_turnPID{kPTurn, kITurn, kDTurn,
         {kMaxTurnRate, kMaxTurnAcceleration}},
-        m_thetaPID{5.2, 0.0, 0.0, {kMaxTurnRate, kMaxTurnAcceleration}},
-      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(3.62, 0.0, 0.0), 
+      m_thetaPID{kPTheta, kITheta, kDTheta, 
+        {kMaxTurnRate, kMaxTurnAcceleration}},
+      m_sim_state(new DrivetrainSimulation(*this)), 
+      m_XYController(kPXY, kIXY, kDXY), 
       m_holonomicController(m_XYController, m_XYController, m_thetaPID){
 
   frc::DataLogManager::Log(
@@ -242,6 +252,16 @@ bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
     return caca();
 } 
 
+frc::Pose2d Drivetrain::Error(frc::Pose2d desiredPose)
+{
+  auto caca = [=]{
+    frc::Pose2d currentPose = GetPose();
+    frc::Pose2d poseError = currentPose.RelativeTo(desiredPose);
+    return poseError;
+  };
+    return caca();
+}
+
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
       GetGyroHeading(), each_position(), pose);
@@ -281,6 +301,8 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutData("PDH", &m_pdh);
 
   frc::SmartDashboard::PutData("Swerve/TurnPIDController", &m_turnPID);
+  frc::SmartDashboard::PutData("HolonomicXYPID", &m_XYController);
+  frc::SmartDashboard::PutData("HolonomicRotPID", &m_thetaPID);
 }
 
 frc2::CommandPtr Drivetrain::SwerveCommand(
@@ -357,11 +379,11 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
     m_holonomicController.SetTolerance(tolerance);
     auto states = m_holonomicController.Calculate(
         currentPose, desiredPose, endVelo, desiredRot);
-        std::cout << GetSpeed().to<double>() << std::endl;
-    Drive(states.vx, states.vy, states.omega, false, isRed);})
-  .Until([this, desiredPose, tolerance] {
-    return AtPose(desiredPose, tolerance); 
-          });
+    frc::SmartDashboard::PutNumber("Rot Error", Error(desiredPose).Rotation().Degrees().to<double>());
+    Drive(states.vx, states.vy, states.omega, false, isRed);});
+  // .Until([this, desiredPose, tolerance] {
+  //   return AtPose(desiredPose, tolerance); 
+  //         });
   return ret_cmd;
 };
 

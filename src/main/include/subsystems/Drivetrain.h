@@ -86,6 +86,8 @@ public:
 
   bool AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance);
 
+
+  frc::Pose2d Error(frc::Pose2d desiredPose);
   // Returns Current Chassis Speed
   frc::ChassisSpeeds GetChassisSpeed();
 
@@ -148,6 +150,7 @@ frc2::CommandPtr DriveToPoseCommand(
   frc2::CommandPtr BrakeCommand();
 
   frc2::CommandPtr TurnToAngleCommand(units::degree_t angle);
+
 
 private:
   // magic to make doing stuff for every module easier
