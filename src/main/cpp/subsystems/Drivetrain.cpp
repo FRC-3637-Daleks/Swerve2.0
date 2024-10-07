@@ -40,16 +40,20 @@ constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
 
 constexpr auto kPeriod = 20_ms;
 
-constexpr double kPTurn = 0.071;
-constexpr double kITurn = 0.00;
-constexpr double kDTurn = 0.00;
+constexpr double kPTheta = 3.62;
+constexpr double kITheta = 0.00;
+constexpr double kDTheta = 0.00;
+
+constexpr double kPXY = 5.2; //I know this is butt ugly, 
+constexpr double kIXY = 0.0; //too tired to think of different name
+constexpr double kDXY= 0.0;
+
 
 // Swerve Constants
 constexpr auto kTrackWidth =
     25_in; // Distance between centers of right and left wheels.
 constexpr auto kWheelBase =
     25_in; // Distance between centers of front and back wheels.
-// const auto kRadius = 19.5_in; // 19.5 inches
 const auto kRadius = units::meter_t(std::sqrt(.91));
 
 constexpr int kFrontLeftDriveMotorId = 1;
@@ -115,10 +119,8 @@ Drivetrain::Drivetrain()
       m_poseEstimator{
         kDriveKinematics, GetGyroHeading(), each_position(),
         frc::Pose2d()},
-      m_turnPID{kPTurn, kITurn, kDTurn,
-        {kMaxTurnRate, kMaxTurnAcceleration}},
-        m_thetaPID{5.2, 0.0, 0.0, {kMaxTurnRate, kMaxTurnAcceleration}},
-      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(3.62, 0.0, 0.0), 
+        m_thetaPID{kPTheta, kITheta, kDTheta, {kMaxTurnRate, kMaxTurnAcceleration}},
+      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(kPXY, kIXY, kDXY), 
       m_holonomicController(m_XYController, m_XYController, m_thetaPID){
 
   frc::DataLogManager::Log(
@@ -232,14 +234,14 @@ units::meters_per_second_t Drivetrain::GetSpeed(){
 }
 
 bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
-  auto caca = [=]{
+  auto ret = [=]{
   frc::Pose2d currentPose = GetPose();
   frc::Pose2d poseError = currentPose.RelativeTo(desiredPose);
   return (poseError.X() < tolerance.X()) &&
          (poseError.Y() < tolerance.Y()) &&
          (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees()) &&
          GetSpeed() < .02_mps && GetTurnRate() < 3_deg_per_s ;};
-    return caca();
+    return ret();
 } 
 
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
@@ -249,7 +251,19 @@ void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
 
 void Drivetrain::UpdateDashboard() {
   const auto robot_center = this->GetPose();
+  
   m_field.SetRobotPose(this->GetPose());
+  m_field.GetObject("Desired Pose");
+
+  auto desiredX = 1_m * m_holonomicController.getXController().GetSetpoint();
+  auto desiredY = 1_m * m_holonomicController.getYController().GetSetpoint();
+  auto desiredTheta = -117.906_deg + //dont ask why this is the value it just is
+    (1_deg * m_holonomicController.getThetaController().GetSetpoint().position());
+
+  const frc::Pose2d desiredPose(desiredX, desiredY, desiredTheta);
+
+  m_field.GetObject("Desired Pose")->SetPose(desiredPose);
+
 
   int xs[] = {1, 1, -1, -1};
   int ys[] = {1, -1, 1, -1};
@@ -280,7 +294,8 @@ void Drivetrain::UpdateDashboard() {
 
   frc::SmartDashboard::PutData("PDH", &m_pdh);
 
-  frc::SmartDashboard::PutData("Swerve/TurnPIDController", &m_turnPID);
+  frc::SmartDashboard::PutData("Swerve/ThetaPIDController", &m_thetaPID);
+  frc::SmartDashboard::PutData("Swerve/XYPIDController", &m_XYController);
 }
 
 frc2::CommandPtr Drivetrain::SwerveCommand(
@@ -360,6 +375,7 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
         std::cout << GetSpeed().to<double>() << std::endl;
     Drive(states.vx, states.vy, states.omega, false, isRed);})
   .Until([this, desiredPose, tolerance] {
+    m_holonomicController.SetEnabled(false);
     return AtPose(desiredPose, tolerance); 
           });
   return ret_cmd;
@@ -410,7 +426,6 @@ void Drivetrain::SimulationPeriodic() {
 
   // Assume perfect kinematics and get the new gyro angle
   const auto chassis_speed = kDriveKinematics.ToChassisSpeeds(each_state());
-
   const auto theta = m_sim_state->m_poseSim.GetPose().Rotation();
   const auto new_theta =
       theta.RotateBy(units::radian_t{chassis_speed.omega * 20_ms});

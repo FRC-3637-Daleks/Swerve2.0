@@ -144,11 +144,6 @@ frc2::CommandPtr DriveToPoseCommand(
 
   frc2::CommandPtr ConfigAbsEncoderCommand();
 
-  // Returns a command that stops the robot.
-  frc2::CommandPtr BrakeCommand();
-
-  frc2::CommandPtr TurnToAngleCommand(units::degree_t angle);
-
 private:
   // magic to make doing stuff for every module easier
   auto each_module(auto&& fn)
@@ -184,7 +179,6 @@ private:
   // Field widget for Shuffleboard.
   frc::Field2d m_field;
 
-  frc::ProfiledPIDController<units::degrees> m_turnPID;
   frc::ProfiledPIDController<units::radians> m_thetaPID;
   frc::PIDController m_XYController;
   frc::HolonomicDriveController m_holonomicController;

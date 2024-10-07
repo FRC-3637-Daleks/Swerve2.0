@@ -16,7 +16,9 @@
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Drivebase": "Subsystem",
       "/SmartDashboard/Field": "Field2d",
+      "/SmartDashboard/Swerve/ThetaPIDController": "ProfiledPIDController",
       "/SmartDashboard/Swerve/TurnPIDController": "ProfiledPIDController",
+      "/SmartDashboard/Swerve/XYPIDController": "PIDController",
       "/SmartDashboard/zeroEncodersCommand": "Command"
     },
     "windows": {
