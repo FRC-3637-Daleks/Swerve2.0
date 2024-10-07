@@ -23,6 +23,22 @@
     },
     "windows": {
       "/SmartDashboard/Field": {
+        "Desired Pose": {
+          "arrowColor": [
+            255.0,
+            0.0,
+            213.0379638671875,
+            255.0
+          ],
+          "color": [
+            0.0,
+            232.4050750732422,
+            255.0,
+            255.0
+          ],
+          "length": 0.9100000262260437,
+          "width": 0.9100000262260437
+        },
         "FL": {
           "arrowColor": [
             1.0,
@@ -109,7 +125,21 @@
         "left": 150,
         "right": 2961,
         "simulation": {
-          "style": "Box/Image"
+          "arrowColor": [
+            0.5332479476928711,
+            0.6582278609275818,
+            0.0,
+            255.0
+          ],
+          "color": [
+            0.05426459386944771,
+            0.0,
+            0.5358649492263794,
+            255.0
+          ],
+          "length": 0.9100000262260437,
+          "style": "Box/Image",
+          "width": 0.9100000262260437
         },
         "top": 79,
         "vision estimate": {
@@ -125,13 +155,29 @@
         "window": {
           "visible": true
         }
+      },
+      "/SmartDashboard/Swerve/ThetaPIDController": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/Swerve/XYPIDController": {
+        "window": {
+          "visible": true
+        }
       }
     }
   },
   "NetworkTables": {
     "transitory": {
       "SmartDashboard": {
+        "CAN Bus": {
+          "open": true
+        },
         "Drivebase": {
+          "open": true
+        },
+        "Field": {
           "open": true
         },
         "Swerve": {
@@ -146,6 +192,9 @@
         "TurnPID": {
           "open": true
         },
+        "double[]##v_/SmartDashboard/Error": {
+          "open": true
+        },
         "open": true
       }
     }
@@ -158,5 +207,70 @@
       "open": true
     },
     "visible": true
+  },
+  "Plot": {
+    "Plot <0>": {
+      "plots": [
+        {
+          "axis": [
+            {
+              "label": "Error"
+            }
+          ],
+          "backgroundColor": [
+            0.0,
+            0.0,
+            0.0,
+            0.8500000238418579
+          ],
+          "height": 290,
+          "series": [
+            {
+              "color": [
+                0.2980392277240753,
+                0.44705885648727417,
+                0.6901960968971252,
+                1.0
+              ],
+              "id": "NT:/SmartDashboard/Error[0]",
+              "name": "X Error"
+            },
+            {
+              "color": [
+                0.8666667342185974,
+                0.5176470875740051,
+                0.32156863808631897,
+                1.0
+              ],
+              "id": "NT:/SmartDashboard/Error[1]",
+              "name": "Y Error"
+            },
+            {
+              "color": [
+                0.3333333432674408,
+                0.658823549747467,
+                0.4078431725502014,
+                1.0
+              ],
+              "id": "NT:/SmartDashboard/Error[2]",
+              "name": "Theta Error"
+            },
+            {
+              "color": [
+                0.7686275243759155,
+                0.30588236451148987,
+                0.32156863808631897,
+                1.0
+              ],
+              "id": "NT:/SmartDashboard/Error[3]",
+              "name": "Control"
+            }
+          ]
+        }
+      ],
+      "window": {
+        "name": "Pose Error"
+      }
+    }
   }
 }

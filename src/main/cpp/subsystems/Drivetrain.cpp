@@ -253,16 +253,6 @@ void Drivetrain::UpdateDashboard() {
   const auto robot_center = this->GetPose();
   
   m_field.SetRobotPose(this->GetPose());
-  m_field.GetObject("Desired Pose");
-
-  auto desiredX = 1_m * m_holonomicController.getXController().GetSetpoint();
-  auto desiredY = 1_m * m_holonomicController.getYController().GetSetpoint();
-  auto desiredTheta = -117.906_deg + //dont ask why this is the value it just is
-    (1_deg * m_holonomicController.getThetaController().GetSetpoint().position());
-
-  const frc::Pose2d desiredPose(desiredX, desiredY, desiredTheta);
-
-  m_field.GetObject("Desired Pose")->SetPose(desiredPose);
 
 
   int xs[] = {1, 1, -1, -1};
@@ -279,12 +269,17 @@ void Drivetrain::UpdateDashboard() {
                                   m_gyro.IsCalibrating());
   frc::SmartDashboard::PutNumber("Swerve/Robot heading",
                                  GetHeading().Degrees().value());
-  auto wheel_speeds = each_module([](SwerveModule& m) {
-    return m.GetState().speed.convert<units::meters_per_second>().value();
-  });
+  //   auto wheel_speeds = each_module([](SwerveModule& m) {
+  //   return m.GetState().speed.convert<units::meters_per_second>().value();
+  // });
+  // frc::SmartDashboard::PutNumber(
+  //     "Robot Speed",
+  //     std::accumulate(wheel_speeds.begin(), wheel_speeds.end(), 0.0)/4);
+
+  //sorry eric, your fancy c++ said that the robots speed was 0
+  //when the modules arent all facing the same direction.
   frc::SmartDashboard::PutNumber(
-      "Robot Speed",
-      std::accumulate(wheel_speeds.begin(), wheel_speeds.end(), 0.0)/4);
+      "Robot Speed", GetSpeed().to<double>());
   frc::SmartDashboard::PutData("zeroEncodersCommand",
                                zeroEncodersCommand.get());
 
@@ -296,6 +291,10 @@ void Drivetrain::UpdateDashboard() {
 
   frc::SmartDashboard::PutData("Swerve/ThetaPIDController", &m_thetaPID);
   frc::SmartDashboard::PutData("Swerve/XYPIDController", &m_XYController);
+  double error[] = {m_holonomicController.getXController().GetPositionError(),
+                    m_holonomicController.getYController().GetPositionError(),
+                    m_holonomicController.getThetaController().GetPositionError().to<double>()};
+  frc::SmartDashboard::PutNumberArray("Error", error);
 }
 
 frc2::CommandPtr Drivetrain::SwerveCommand(
@@ -365,14 +364,17 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
                                       bool isRed,
                                       units::meters_per_second_t endVelo,
                                       frc::Pose2d tolerance)  {
-  auto ret_cmd = Run([=]  {
+  auto ret_cmd = RunEnd([=]  {
     auto currentPose = GetPose();
     auto desiredRot = desiredPose.Rotation();
     m_holonomicController.SetEnabled(true);
     m_holonomicController.SetTolerance(tolerance);
+    m_field.GetObject("Desired Pose")->SetPose(desiredPose);
     auto states = m_holonomicController.Calculate(
         currentPose, desiredPose, endVelo, desiredRot);
-    Drive(states.vx, states.vy, states.omega, false, isRed);})
+    Drive(states.vx, states.vy, states.omega, false, isRed);},
+    [this](){m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
+             m_holonomicController.SetEnabled(false);})
   .Until([this, desiredPose, tolerance] {
     return AtPose(desiredPose, tolerance); 
           });
