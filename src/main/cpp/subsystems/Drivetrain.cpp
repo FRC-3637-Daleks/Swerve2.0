@@ -240,7 +240,7 @@ bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
   return (poseError.X() < tolerance.X()) &&
          (poseError.Y() < tolerance.Y()) &&
          (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees()) &&
-         GetSpeed() < .02_mps && GetTurnRate() < 3_deg_per_s ;};
+         (GetSpeed() < .02_mps) && (GetTurnRate() < 3_deg_per_s);};
     return ret();
 } 
 
@@ -372,10 +372,8 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
     m_holonomicController.SetTolerance(tolerance);
     auto states = m_holonomicController.Calculate(
         currentPose, desiredPose, endVelo, desiredRot);
-        std::cout << GetSpeed().to<double>() << std::endl;
     Drive(states.vx, states.vy, states.omega, false, isRed);})
   .Until([this, desiredPose, tolerance] {
-    m_holonomicController.SetEnabled(false);
     return AtPose(desiredPose, tolerance); 
           });
   return ret_cmd;
