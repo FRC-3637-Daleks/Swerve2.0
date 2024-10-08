@@ -296,11 +296,12 @@ frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
 }
 
 frc2::CommandPtr Drivetrain::DriveToPoseCommand(
-  const frc::Pose2d &desiredPose,
+  std::function<frc::Pose2d()> desiredPoseSupplier,
   units::meters_per_second_t endVelo,
   const frc::Pose2d &tolerance)  {
   return this->RunEnd(
     [=, this] {
+      auto desiredPose = desiredPoseSupplier();
       auto currentPose = GetPose();
       auto desiredRot = desiredPose.Rotation();
       m_holonomicController.SetEnabled(true);
@@ -314,8 +315,8 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
       m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
       m_holonomicController.SetEnabled(false);
     })
-    .Until([this, desiredPose, tolerance] {
-      return AtPose(desiredPose, tolerance); 
+    .Until([=, this] {
+      return AtPose(desiredPoseSupplier(), tolerance);
     }
   );
 };

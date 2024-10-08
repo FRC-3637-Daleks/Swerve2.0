@@ -120,21 +120,38 @@ public:
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot);
 
-  // Drives the robot to 'desiredPose' with feedforward 'endVelo'
+  // Drives the robot to 'desiredPose()' with feedforward 'endVelo'
   // until its within 'tolerance' of 'desiredPose'
   frc2::CommandPtr DriveToPoseCommand(
-    const frc::Pose2d &desiredPose,
+    std::function<frc::Pose2d()> desiredPoseSupplier,
     units::meters_per_second_t endVelo = 0.0_mps,
     const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
   
-  // Drives the robot toward 'desiredPose'
+  frc2::CommandPtr DriveToPoseCommand(
+    const frc::Pose2d &desiredPose,
+    units::meters_per_second_t endVelo = 0.0_mps,
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg}) {
+    return DriveToPoseCommand(
+      [desiredPose] {return desiredPose;}, endVelo, tolerance);
+  }
+  
+  // Drives the robot toward 'desiredPose()'
   // Warning: This command will not terminate unless interrupted,
   // or until the specified timeout.
   // Should be bound to triggers with WhileTrue
   frc2::CommandPtr DriveToPoseIndefinitelyCommand(
+    std::function<frc::Pose2d()> desiredPoseSupplier,
+    units::second_t timeout = 3.0_s) {
+    return DriveToPoseCommand(std::move(desiredPoseSupplier), 0.0_mps, {}).WithTimeout(timeout);
+  }
+
+  frc2::CommandPtr DriveToPoseIndefinitelyCommand(
     const frc::Pose2d &desiredPose,
-    units::second_t timeout = 3.0_s)
-  {return DriveToPoseCommand(desiredPose, 0.0_mps, {}).WithTimeout(timeout);}
+    units::second_t timeout = 3.0_s) {
+    return DriveToPoseIndefinitelyCommand(
+      [desiredPose] {return desiredPose;}, timeout);
+  }
+  
 
   // Returns a command that zeroes the robot heading.
   frc2::CommandPtr ZeroHeadingCommand();
