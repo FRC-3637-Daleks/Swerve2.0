@@ -25,6 +25,7 @@
 #include <units/angular_velocity.h>
 #include <units/angular_acceleration.h>
 #include <units/force.h>
+#include <units/math.h>
 
 #include <hal/SimDevice.h>
 #include <hal/simulation/SimDeviceData.h>
@@ -183,7 +184,7 @@ void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
 }
 
 void Drivetrain::SetModuleStates(
-    wpi::array<frc::SwerveModuleState, 4> desiredStates) {
+    wpi::array<frc::SwerveModuleState, kNumModules> desiredStates) {
   for (int i = 0; i < kNumModules; i++)
     m_modules[i].SetDesiredState(desiredStates[i]);
 }
@@ -228,23 +229,17 @@ frc::ChassisSpeeds Drivetrain::GetChassisSpeed() {
 }
 
 units::meters_per_second_t Drivetrain::GetSpeed(){
-  auto ret = [=]{ 
-    auto vx = GetChassisSpeed().vx.to<double>();
-    auto vy = GetChassisSpeed().vy.to<double>();
-    auto speed = std::sqrt((pow(vx, 2))+(pow(vy, 2)));
-    return (speed * 1_mps);};
-  return ret();
+  const auto speeds = GetChassisSpeed();
+  return units::math::sqrt(speeds.vx*speeds.vx + speeds.vy*speeds.vy);
 }
 
 bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
-  auto ret = [=]{
   frc::Pose2d currentPose = GetPose();
   frc::Pose2d poseError = currentPose.RelativeTo(desiredPose);
-  return (poseError.X() < tolerance.X()) &&
-         (poseError.Y() < tolerance.Y()) &&
-         (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees()) &&
-         (GetSpeed() < .02_mps) && (GetTurnRate() < 2_deg_per_s);};
-    return ret();
+  return (units::math::abs(poseError.X()) < tolerance.X()) &&
+         (units::math::abs(poseError.Y()) < tolerance.Y()) &&
+         (units::math::abs(poseError.Rotation().Degrees()) < tolerance.Rotation().Degrees()) &&
+         (GetSpeed() < .02_mps) && (GetTurnRate() < 2_deg_per_s);
 } 
 
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
