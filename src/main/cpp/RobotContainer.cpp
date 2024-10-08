@@ -171,8 +171,10 @@ void RobotContainer::ConfigureBindings() {
     )
   );
 
-  DriveToPoseTrigger.WhileTrue(
-    m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
+  DriveToPoseTrigger.ToggleOnTrue(
+    //m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose)
+    m_swerve.ZTargetCommand(fwd, strafe, [] {return AutoConstants::desiredPose;})
+  );
 
   DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose));
   

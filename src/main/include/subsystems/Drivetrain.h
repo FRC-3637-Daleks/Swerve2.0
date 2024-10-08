@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "SwerveModule.h"
+#include "DrivetrainInterfaceHelper.h"
 
 // Forward Declaration
 class DrivetrainSimulation;
@@ -44,6 +45,15 @@ private:
 public:
   using module_states_t = 
     wpi::array<frc::SwerveModuleState, kNumModules>;
+  
+  using linear_cmd_supplier_t =
+    std::function<units::meters_per_second_t()>;
+  
+  using rotation_cmd_supplier_t =
+    std::function<units::revolutions_per_minute_t()>;
+  
+  using pose_supplier_t =
+    std::function<frc::Pose2d()>;
 
 public:
   // The ctor of the Drivetrain subsystem.
@@ -152,6 +162,30 @@ public:
       [desiredPose] {return desiredPose;}, timeout);
   }
   
+  // Cmd here refers to the commanded motion, not wpilib commands 
+  frc2::CommandPtr AssistedDriveCommand(
+    LinearCmd auto&& x_cmd,
+    LinearCmd auto&& y_cmd,
+    RotationCmd auto&& theta_cmd) {
+    return SwerveCommandFieldRelative(
+      x_speed(std::forward<decltype(x_cmd)>(x_cmd)),
+      y_speed(std::forward<decltype(y_cmd)>(y_cmd)),
+      theta_speed(std::forward<decltype(theta_cmd)>(theta_cmd))
+    );
+  }
+
+  frc2::CommandPtr ZTargetCommand(
+    linear_cmd_supplier_t fwd,
+    linear_cmd_supplier_t strafe,
+    pose_supplier_t target) {
+    return AssistedDriveCommand(
+      std::move(fwd),
+      std::move(strafe),
+      [this, target] {
+        return (target().Translation() - GetPose().Translation()).Angle().Radians();
+      }
+    );
+  }
 
   // Returns a command that zeroes the robot heading.
   frc2::CommandPtr ZeroHeadingCommand();
@@ -183,6 +217,63 @@ private:
   auto each_state() {
     return each_module([](SwerveModule &m) {return m.GetState();});
   }
+
+private:
+  // By defining these for several input types, AssistedDriveCommand
+  // can take in any permutation of static setpoints, dynamic setpoints,
+  // or dynamic control inputs and generate a command that does it
+
+  // Runs the PID controller for a dynamic position
+  linear_cmd_supplier_t x_speed(LinearPositionSupplier auto &&position) {
+    return [this, position = std::forward<decltype(position)>(position)] {
+      return units::meters_per_second_t{
+        m_holonomicController.getXController().Calculate(
+          units::meter_t{GetPose().X()}.value(),
+          std::forward<decltype(position)>(position)().value())
+      };
+    };
+  }
+  linear_cmd_supplier_t y_speed(LinearPositionSupplier auto &&position) {
+    return [this, position = std::forward<decltype(position)>(position)] {
+      return units::meters_per_second_t{
+        m_holonomicController.getYController().Calculate(
+          units::meter_t{GetPose().Y()}.value(),
+          std::forward<decltype(position)>(position)().value())
+      };
+    };
+  }
+  rotation_cmd_supplier_t theta_speed(RotationSupplier auto &&heading) {
+    return [this, heading = std::forward<decltype(heading)>(heading)] {
+      return units::radians_per_second_t{
+        m_holonomicController.getThetaController().Calculate(
+          GetPose().Rotation().Radians(),
+          std::forward<decltype(heading)>(heading)())
+      };
+    };
+  }
+
+  // Runs the PID controller for a static position
+  linear_cmd_supplier_t x_speed(Distance auto position)
+  {return x_speed([position] {return position;});}
+  linear_cmd_supplier_t y_speed(Distance auto position)
+  {return y_speed([position] {return position;});}
+  rotation_cmd_supplier_t theta_speed(Rotation auto heading)
+  {return theta_speed([heading] {return heading;});}
+
+  // Passes through the speed
+  linear_cmd_supplier_t x_speed(LinearVelocitySupplier auto &&velocity)
+  {return std::forward<decltype(velocity)>(velocity);}
+  linear_cmd_supplier_t y_speed(LinearVelocitySupplier auto &&velocity)
+  {return std::forward<decltype(velocity)>(velocity);}
+  rotation_cmd_supplier_t theta_speed(AngularVelocitySupplier auto &&velocity)
+  {return std::forward<decltype(velocity)>(velocity);}
+
+  linear_cmd_supplier_t x_speed(LinearVelocity auto velocity)
+  {return [velocity] {return velocity;};}
+  linear_cmd_supplier_t y_speed(LinearVelocity auto velocity)
+  {return [velocity] {return velocity;};}
+  linear_cmd_supplier_t theta_speed(AngularVelocity auto velocity)
+  {return [velocity] {return velocity;};}
 
 private:
   frc::SwerveDriveKinematics<4> kDriveKinematics;
