@@ -130,7 +130,8 @@ void RobotContainer::ConfigureBindings() {
         OperatorConstants::kDeadband);
     auto squaredInput =
         input * std::abs(input); // square the input while preserving the sign
-    return OperatorConstants::kMaxTeleopSpeed * squaredInput;
+    auto alliance_flip = IsRed()? -1:1;
+    return OperatorConstants::kMaxTeleopSpeed * squaredInput * alliance_flip;
   };
 
   auto strafe = [this]() -> units::meters_per_second_t {
@@ -138,7 +139,8 @@ void RobotContainer::ConfigureBindings() {
         -m_swerveController.GetRawAxis(OperatorConstants::kStrafeAxis),
         OperatorConstants::kDeadband);
     auto squaredInput = input * std::abs(input);
-    return OperatorConstants::kMaxTeleopSpeed * squaredInput;
+    auto alliance_flip = IsRed()? -1:1;
+    return OperatorConstants::kMaxTeleopSpeed * squaredInput * alliance_flip;
   };
 
   auto rot = [this]() -> units::revolutions_per_minute_t {
@@ -150,22 +152,29 @@ void RobotContainer::ConfigureBindings() {
   };
 
   auto speed = [this]() -> double { 
-    int input = (100 * m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis));
-    return input;
+    return m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis);
   };
 
   // Constantly updating for alliance checks.
   auto checkRed = [this]() -> bool { return m_isRed; };
 
   m_swerve.SetDefaultCommand(
-      m_swerve.SwerveCommandFieldRelative(fwd, strafe, rot, checkRed));
+      m_swerve.SwerveCommandFieldRelative(fwd, strafe, rot));
 
   m_swerveController.Button(12).OnTrue(m_swerve.ZeroHeadingCommand());
 
   m_swerveController.Button(9).ToggleOnTrue(
-      m_swerve.SwerveSlowCommand(fwd, strafe, rot, speed, checkRed));
+    m_swerve.SwerveCommandFieldRelative(
+      [fwd, speed] {return fwd()/speed();},
+      [strafe, speed] {return strafe()/speed();},
+      [rot, speed] {return rot()/speed();}
+    )
+  );
 
-  DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose, m_isRed));
+  DriveToPoseTrigger.WhileTrue(
+    m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
+
+  DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose));
   
 }
 
@@ -181,4 +190,11 @@ frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
 
 frc2::CommandPtr RobotContainer::GetDisabledCommand() {
   return frc2::cmd::None();
+}
+
+bool RobotContainer::IsRed()
+{
+  m_isRed = (frc::DriverStation::GetAlliance() == frc::DriverStation::Alliance::kRed);
+
+  return m_isRed;
 }

@@ -1,12 +1,12 @@
 {
-  "FMS": {
+  "Joysticks": {
     "window": {
       "visible": false
     }
   },
-  "Joysticks": {
+  "Keyboard 0 Settings": {
     "window": {
-      "visible": false
+      "visible": true
     }
   },
   "Keyboard 0 Settings": {

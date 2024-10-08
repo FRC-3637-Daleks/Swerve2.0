@@ -44,15 +44,17 @@ constexpr auto kPeriod = 20_ms;
 constexpr double kPTheta = 3.62;
 constexpr double kITheta = 0.00;
 constexpr double kDTheta = 0.00;
+inline const frc::ProfiledPIDController<units::radians> kThetaPID{
+  kPTheta, kITheta, kDTheta,
+  {kMaxTurnRate, kMaxTurnAcceleration}
+};
 
 constexpr double kPXY = 5.2;
 constexpr double kIXY = 0.0;
 constexpr double kDXY= 0.0;
-
-// constexpr double kPXY = 8.87; //Kc = 14.78
-// constexpr double kIXY = 11.09;
-// constexpr double kDXY= 1.77;
-
+inline const frc::PIDController kTranslatePID{
+  kPXY, kIXY, kDXY
+};
 
 // Swerve Constants
 constexpr auto kTrackWidth =
@@ -122,19 +124,19 @@ Drivetrain::Drivetrain()
       m_gyro{frc::SPI::Port::kMXP},
       m_pdh{kPDH, frc::PowerDistribution::ModuleType::kRev},
       m_poseEstimator{
-        kDriveKinematics, GetGyroHeading(), each_position(),
-        frc::Pose2d()},
-        m_thetaPID{kPTheta, kITheta, kDTheta, {kMaxTurnRate, kMaxTurnAcceleration}},
-      m_sim_state(new DrivetrainSimulation(*this)), m_XYController(kPXY, kIXY, kDXY), 
-      m_holonomicController(m_XYController, m_XYController, m_thetaPID){
+        kDriveKinematics, GetGyroHeading(), each_position(), frc::Pose2d()},
+      m_sim_state(new DrivetrainSimulation(*this)),
+      m_holonomicController(kTranslatePID, kTranslatePID, kThetaPID) {
+  
+  InitializeDashboard();
 
   frc::DataLogManager::Log(
       fmt::format("Finished initializing drivetrain subsystem."));
 }
+
 frc::Pose2d Drivetrain::GetSimulatedGroundTruth() {
   return m_sim_state->m_poseSim.GetPose();
 }
-
 
 void Drivetrain::Periodic() {
 
@@ -149,29 +151,8 @@ void Drivetrain::Periodic() {
 
 Drivetrain::~Drivetrain() {}
 
-void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
-                       units::meters_per_second_t strafeSpeed,
-                       units::radians_per_second_t angularSpeed,
-                       bool fieldRelative, bool isRed) {
-
-    auto states = kDriveKinematics.ToSwerveModuleStates(
-      frc::ChassisSpeeds{0_mps, 0_mps, 0_rad_per_s});
-
-  if (fieldRelative) {
-    if (isRed)  
-      states = kDriveKinematics.ToSwerveModuleStates(
-          frc::ChassisSpeeds::Discretize(
-            frc::ChassisSpeeds::FromFieldRelativeSpeeds(
-              -1 * forwardSpeed, -1 * strafeSpeed, angularSpeed, GetHeading()), kPeriod));
-    else
-      states = kDriveKinematics.ToSwerveModuleStates(
-        frc::ChassisSpeeds::Discretize(
-          frc::ChassisSpeeds::FromFieldRelativeSpeeds(
-              forwardSpeed, strafeSpeed, angularSpeed, GetHeading()), kPeriod));
-  } else {
-    states = kDriveKinematics.ToSwerveModuleStates(
-        frc::ChassisSpeeds{forwardSpeed, strafeSpeed, angularSpeed});
-  }
+void Drivetrain::Drive(const frc::ChassisSpeeds &cmd_vel) {
+  auto states = kDriveKinematics.ToSwerveModuleStates(cmd_vel);
 
   // Occasionally a drive motor is commanded to go faster than its maximum
   // output can sustain. Desaturation lowers the module speeds so that no motor
@@ -179,12 +160,15 @@ void Drivetrain::Drive(units::meters_per_second_t forwardSpeed,
   kDriveKinematics.DesaturateWheelSpeeds(&states, ModuleConstants::kPhysicalMaxSpeed);
 
   // Finally each of the desired states can be sent as commands to the modules.
-  for (int i = 0; i < kNumModules; i++)
-    m_modules[i].SetDesiredState(states[i]);
+  SetModuleStates(states);
+}
+
+void Drivetrain::DriveFieldRelative(const frc::ChassisSpeeds &cmd_vel) {
+  Drive(frc::ChassisSpeeds::FromFieldRelativeSpeeds(cmd_vel, GetHeading()));
 }
 
 void Drivetrain::SetModuleStates(
-    wpi::array<frc::SwerveModuleState, kNumModules> desiredStates) {
+    const wpi::array<frc::SwerveModuleState, kNumModules> &desiredStates) {
   for (int i = 0; i < kNumModules; i++)
     m_modules[i].SetDesiredState(desiredStates[i]);
 }
@@ -233,9 +217,9 @@ units::meters_per_second_t Drivetrain::GetSpeed(){
   return units::math::sqrt(speeds.vx*speeds.vx + speeds.vy*speeds.vy);
 }
 
-bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
-  frc::Pose2d currentPose = GetPose();
-  frc::Pose2d poseError = currentPose.RelativeTo(desiredPose);
+bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance) {
+  auto currentPose = GetPose();
+  auto poseError = currentPose.RelativeTo(desiredPose);
   return (units::math::abs(poseError.X()) < tolerance.X()) &&
          (units::math::abs(poseError.Y()) < tolerance.Y()) &&
          (units::math::abs(poseError.Rotation().Degrees()) < tolerance.Rotation().Degrees()) &&
@@ -245,6 +229,21 @@ bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
       GetGyroHeading(), each_position(), pose);
+}
+
+void Drivetrain::InitializeDashboard() {
+  // PutData is persistent, these objects only need to be passed in once
+  frc::SmartDashboard::PutData("Field", &m_field);
+  frc::SmartDashboard::PutData("zeroEncodersCommand",
+                               zeroEncodersCommand.get());
+  frc::SmartDashboard::PutData("PDH", &m_pdh);
+
+  frc::SmartDashboard::PutData("Swerve/ThetaPIDController",
+                               &m_holonomicController.getThetaController());
+  frc::SmartDashboard::PutData("Swerve/XPIDController",
+                               &m_holonomicController.getXController());
+  frc::SmartDashboard::PutData("Swerve/YPIDController",
+                               &m_holonomicController.getYController());
 }
 
 void Drivetrain::UpdateDashboard() {
@@ -260,29 +259,21 @@ void Drivetrain::UpdateDashboard() {
     m_field.GetObject(m_modules[i].GetName())->SetPose(module_pose);
   }
 
-  frc::SmartDashboard::PutData("Field", &m_field);
-
   frc::SmartDashboard::PutBoolean("Swerve/Gyro calibrating?",
                                   m_gyro.IsCalibrating());
   frc::SmartDashboard::PutNumber("Swerve/Robot heading",
                                  GetHeading().Degrees().value());
   frc::SmartDashboard::PutNumber("Robot Speed (mps)",
                                  units::meters_per_second_t{GetSpeed()}.value());
-  frc::SmartDashboard::PutData("zeroEncodersCommand",
-                               zeroEncodersCommand.get());
 
   for (auto &m : m_modules) m.UpdateDashboard();
 
   frc::SmartDashboard::PutNumber("Swerve/Gyro", m_gyro.GetAngle());
-
-  frc::SmartDashboard::PutData("PDH", &m_pdh);
-
-  frc::SmartDashboard::PutData("Swerve/ThetaPIDController", &m_holonomicController.getThetaController());
-  frc::SmartDashboard::PutData("Swerve/XPIDController", &m_holonomicController.getXController());
-  frc::SmartDashboard::PutData("Swerve/YPIDController", &m_holonomicController.getYController());
-  double error[] = {std::abs(m_holonomicController.getXController().GetPositionError()),
-                    std::abs(m_holonomicController.getYController().GetPositionError()),
-                    std::abs(m_holonomicController.getThetaController().GetPositionError().value())};
+  
+  double error[] = {
+    m_holonomicController.getXController().GetPositionError(),
+    m_holonomicController.getYController().GetPositionError(),
+    m_holonomicController.getThetaController().GetPositionError().value()};
   frc::SmartDashboard::PutNumberArray("Error", error);
 }
 
@@ -291,53 +282,41 @@ frc2::CommandPtr Drivetrain::SwerveCommand(
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot) {
   return this->Run([=] {
-    Drive(forward(), strafe(), rot(), false, false);
+    Drive(frc::ChassisSpeeds{forward(), strafe(), rot()});
   });
 }
 
 frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
     std::function<units::meters_per_second_t()> forward,
     std::function<units::meters_per_second_t()> strafe,
-    std::function<units::revolutions_per_minute_t()> rot,
-    std::function<bool()> isRed) {
+    std::function<units::revolutions_per_minute_t()> rot) {
   return this->Run([=] {
-    Drive(forward(), strafe(), rot(), true, isRed());
+    DriveFieldRelative(frc::ChassisSpeeds{forward(), strafe(), rot()});
   });
 }
 
-frc2::CommandPtr Drivetrain::SwerveSlowCommand(
-    std::function<units::meters_per_second_t()> forward,
-    std::function<units::meters_per_second_t()> strafe,
-    std::function<units::revolutions_per_minute_t()> rot,
-     std::function<double()> throttle,
-    std::function<bool()> isRed) {
-  return this->Run([=] {
-    auto factor = throttle()/100;
-    Drive(forward() * factor, strafe() * factor, rot() * factor, true, isRed());});
-  };
-
-frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
-                                      bool isRed,
-                                      units::meters_per_second_t endVelo,
-                                      frc::Pose2d tolerance)  {
-  //I know, I know, no more commits but i had to finish what I started,
-  //and I was very bored
-  auto ret_cmd = RunEnd([=]  {
-    GetDefaultCommand()->Cancel();
-    auto currentPose = GetPose();
-    auto desiredRot = desiredPose.Rotation();
-    m_holonomicController.SetEnabled(true);
-    m_holonomicController.SetTolerance(tolerance);
-    m_field.GetObject("Desired Pose")->SetPose(desiredPose);
-    auto states = m_holonomicController.Calculate(
-        currentPose, desiredPose, endVelo, desiredRot);
-    Drive(states.vx, states.vy, states.omega, false, isRed);},
-     //sends the pose out to narnia
-    [this](){m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
-             m_holonomicController.SetEnabled(false);})
-  .Until([this, desiredPose, tolerance] {
-    return AtPose(desiredPose, tolerance); 
-          });
+frc2::CommandPtr Drivetrain::DriveToPoseCommand(
+  const frc::Pose2d &desiredPose,
+  units::meters_per_second_t endVelo,
+  const frc::Pose2d &tolerance)  {
+  auto ret_cmd = RunEnd(
+    [=] {
+      auto currentPose = GetPose();
+      auto desiredRot = desiredPose.Rotation();
+      m_holonomicController.SetEnabled(true);
+      m_holonomicController.SetTolerance(tolerance);
+      m_field.GetObject("Desired Pose")->SetPose(desiredPose);
+      const auto speeds = m_holonomicController.Calculate(
+          currentPose, desiredPose, endVelo, desiredRot);
+      Drive(speeds);
+    },
+    [this] {
+      m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
+      m_holonomicController.SetEnabled(false);
+    })
+    .Until([this, desiredPose, tolerance] {
+      return AtPose(desiredPose, tolerance); 
+    });
   return ret_cmd;
 };
 

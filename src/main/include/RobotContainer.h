@@ -55,4 +55,7 @@ public:
   void ConfigureBindings();
   void ConfigureDashboard();
   void ConfigureAuto();
+
+public:
+  bool IsRed();
 };
