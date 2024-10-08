@@ -257,9 +257,8 @@ void Drivetrain::UpdateDashboard() {
   
   m_field.SetRobotPose(this->GetPose());
 
-
-  int xs[] = {1, 1, -1, -1};
-  int ys[] = {1, -1, 1, -1};
+  constexpr int xs[] = {1, 1, -1, -1};
+  constexpr int ys[] = {1, -1, 1, -1};
   for (int i = 0; i < kNumModules; i++) {
     const auto module_pose = robot_center.TransformBy(
       {xs[i]*kWheelBase/2, ys[i]*kTrackWidth/2, m_modules[i].GetState().angle});
@@ -272,8 +271,8 @@ void Drivetrain::UpdateDashboard() {
                                   m_gyro.IsCalibrating());
   frc::SmartDashboard::PutNumber("Swerve/Robot heading",
                                  GetHeading().Degrees().value());
-  frc::SmartDashboard::PutNumber("Robot Speed",
-                                 GetSpeed().to<double>());
+  frc::SmartDashboard::PutNumber("Robot Speed (mps)",
+                                 units::meters_per_second_t{GetSpeed()}.value());
   frc::SmartDashboard::PutData("zeroEncodersCommand",
                                zeroEncodersCommand.get());
 
@@ -288,7 +287,7 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutData("Swerve/YPIDController", &m_holonomicController.getYController());
   double error[] = {std::abs(m_holonomicController.getXController().GetPositionError()),
                     std::abs(m_holonomicController.getYController().GetPositionError()),
-                   std::abs(m_holonomicController.getThetaController().GetPositionError().to<double>())};
+                    std::abs(m_holonomicController.getThetaController().GetPositionError().value())};
   frc::SmartDashboard::PutNumberArray("Error", error);
 }
 
