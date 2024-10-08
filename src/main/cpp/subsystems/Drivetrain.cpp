@@ -281,7 +281,7 @@ frc2::CommandPtr Drivetrain::SwerveCommand(
     std::function<units::meters_per_second_t()> forward,
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot) {
-  return this->Run([=] {
+  return this->Run([=, this] {
     Drive(frc::ChassisSpeeds{forward(), strafe(), rot()});
   });
 }
@@ -290,7 +290,7 @@ frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
     std::function<units::meters_per_second_t()> forward,
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot) {
-  return this->Run([=] {
+  return this->Run([=, this] {
     DriveFieldRelative(frc::ChassisSpeeds{forward(), strafe(), rot()});
   });
 }
@@ -299,8 +299,8 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
   const frc::Pose2d &desiredPose,
   units::meters_per_second_t endVelo,
   const frc::Pose2d &tolerance)  {
-  auto ret_cmd = RunEnd(
-    [=] {
+  return this->RunEnd(
+    [=, this] {
       auto currentPose = GetPose();
       auto desiredRot = desiredPose.Rotation();
       m_holonomicController.SetEnabled(true);
@@ -316,8 +316,8 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
     })
     .Until([this, desiredPose, tolerance] {
       return AtPose(desiredPose, tolerance); 
-    });
-  return ret_cmd;
+    }
+  );
 };
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
@@ -333,27 +333,27 @@ frc2::CommandPtr Drivetrain::ZeroAbsEncodersCommand() {
 };
 
 frc2::CommandPtr Drivetrain::SetAbsEncoderOffsetCommand() {
-  return this->RunOnce([&] { SetAbsEncoderOffset(); }).IgnoringDisable(true);
+  return this->RunOnce([this] { SetAbsEncoderOffset(); }).IgnoringDisable(true);
 }
 
 frc2::CommandPtr Drivetrain::CoastModeCommand(bool coast) {
-  return this->StartEnd([&] { this->CoastMode(true); },
-                        [&] { this->CoastMode(false); });
+  return this->StartEnd([this] { this->CoastMode(true); },
+                        [this] { this->CoastMode(false); });
 }
 
 frc2::CommandPtr Drivetrain::ConfigAbsEncoderCommand() {
   return this
       ->StartEnd(
-          [&] {
+          [this] {
             CoastMode(true);
             ZeroAbsEncoders();
           },
-          [&] {
+          [this] {
             CoastMode(false);
             SetAbsEncoderOffset();
           })
       .AndThen(frc2::WaitCommand(0.5_s).ToPtr())
-      .AndThen(this->RunOnce([&] { SyncEncoders(); }))
+      .AndThen(this->RunOnce([this] { SyncEncoders(); }))
       .IgnoringDisable(true);
 }
 
