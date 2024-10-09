@@ -44,9 +44,13 @@ constexpr double kPTheta = 3.62;
 constexpr double kITheta = 0.00;
 constexpr double kDTheta = 0.00;
 
-constexpr double kPXY = 5.2; //I know this is butt ugly, 
-constexpr double kIXY = 0.0; //too tired to think of different name
+constexpr double kPXY = 5.2;
+constexpr double kIXY = 0.0;
 constexpr double kDXY= 0.0;
+
+// constexpr double kPXY = 8.87; //Kc = 14.78
+// constexpr double kIXY = 11.09;
+// constexpr double kDXY= 1.77;
 
 
 // Swerve Constants
@@ -228,7 +232,6 @@ units::meters_per_second_t Drivetrain::GetSpeed(){
     auto vx = GetChassisSpeed().vx.to<double>();
     auto vy = GetChassisSpeed().vy.to<double>();
     auto speed = std::sqrt((pow(vx, 2))+(pow(vy, 2)));
-
     return (speed * 1_mps);};
   return ret();
 }
@@ -240,7 +243,7 @@ bool Drivetrain::AtPose(frc::Pose2d desiredPose, frc::Pose2d tolerance) {
   return (poseError.X() < tolerance.X()) &&
          (poseError.Y() < tolerance.Y()) &&
          (poseError.Rotation().Degrees() < tolerance.Rotation().Degrees()) &&
-         (GetSpeed() < .02_mps) && (GetTurnRate() < 3_deg_per_s);};
+         (GetSpeed() < .02_mps) && (GetTurnRate() < 2_deg_per_s);};
     return ret();
 } 
 
@@ -283,9 +286,9 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutData("Swerve/ThetaPIDController", &m_holonomicController.getThetaController());
   frc::SmartDashboard::PutData("Swerve/XPIDController", &m_holonomicController.getXController());
   frc::SmartDashboard::PutData("Swerve/YPIDController", &m_holonomicController.getYController());
-  double error[] = {m_holonomicController.getXController().GetPositionError(),
-                    m_holonomicController.getYController().GetPositionError(),
-                    m_holonomicController.getThetaController().GetPositionError().to<double>()};
+  double error[] = {std::abs(m_holonomicController.getXController().GetPositionError()),
+                    std::abs(m_holonomicController.getYController().GetPositionError()),
+                   std::abs(m_holonomicController.getThetaController().GetPositionError().to<double>())};
   frc::SmartDashboard::PutNumberArray("Error", error);
 }
 
@@ -303,18 +306,21 @@ frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot,
     std::function<bool()> isRed) {
-  return this->Run([=] { Drive(forward(), strafe(), rot(), true, isRed()); });
+  return this->Run([=] {
+    Drive(forward(), strafe(), rot(), true, isRed());
+  });
 }
 
 frc2::CommandPtr Drivetrain::SwerveSlowCommand(
     std::function<units::meters_per_second_t()> forward,
     std::function<units::meters_per_second_t()> strafe,
     std::function<units::revolutions_per_minute_t()> rot,
+     std::function<double()> throttle,
     std::function<bool()> isRed) {
   return this->Run([=] {
-    Drive(forward() / 4, strafe() / 4, rot() / 5, true, isRed());
-  });
-}
+    auto factor = throttle()/100;
+    Drive(forward() * factor, strafe() * factor, rot() * factor, true, isRed());});
+  };
 
 frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
                                       bool isRed,
@@ -323,8 +329,7 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
   //I know, I know, no more commits but i had to finish what I started,
   //and I was very bored
   auto ret_cmd = RunEnd([=]  {
-    RunOnce([this] ()
-      {return GetDefaultCommand()->Cancel();});
+    GetDefaultCommand()->Cancel();
     auto currentPose = GetPose();
     auto desiredRot = desiredPose.Rotation();
     m_holonomicController.SetEnabled(true);

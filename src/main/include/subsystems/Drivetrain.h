@@ -107,24 +107,24 @@ public:
                 std::function<units::revolutions_per_minute_t()> rot);
 
   // Drive the robot with field-relative swerve controls.
-  frc2::CommandPtr SwerveCommandFieldRelative(
+    frc2::CommandPtr SwerveCommandFieldRelative(
       std::function<units::meters_per_second_t()> forward,
       std::function<units::meters_per_second_t()> strafe,
       std::function<units::revolutions_per_minute_t()> rot,
       std::function<bool()> isRed);
 
-  frc2::CommandPtr
-  SwerveSlowCommand(std::function<units::meters_per_second_t()> forward,
-                    std::function<units::meters_per_second_t()> strafe,
-                    std::function<units::revolutions_per_minute_t()> rot,
-                    std::function<bool()> isRed);
+  frc2::CommandPtr SwerveSlowCommand(
+      std::function<units::meters_per_second_t()> forward,
+      std::function<units::meters_per_second_t()> strafe,
+      std::function<units::revolutions_per_minute_t()> rot,
+      std::function<double()> throttle,
+      std::function<bool()> isRed);
 
-
-frc2::CommandPtr DriveToPoseCommand(
-    frc::Pose2d desiredPose,
-    bool isRed,
-    units::meters_per_second_t endVelo = units::meters_per_second_t(0.0),
-    frc::Pose2d tolerance = frc::Pose2d(0.06_m, 0.06_m, 3_deg));
+  frc2::CommandPtr DriveToPoseCommand(
+      frc::Pose2d desiredPose,
+      bool isRed,
+      units::meters_per_second_t endVelo = units::meters_per_second_t(0.0),
+      frc::Pose2d tolerance = frc::Pose2d(0.06_m, 0.06_m, 3_deg));
 
   // Returns a command that zeroes the robot heading.
   frc2::CommandPtr ZeroHeadingCommand();

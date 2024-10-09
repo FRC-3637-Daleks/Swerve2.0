@@ -58,9 +58,10 @@ constexpr int kSwerveControllerPort = 0;
 constexpr double kDeadband = 0.08;
 constexpr double kClimbDeadband = 0.08;
 
-constexpr int kStrafeAxis = frc::Joystick::kXAxis;
-constexpr int kForwardAxis = frc::Joystick::kYAxis;
-constexpr int kRotationAxis = frc::Joystick::kZAxis;
+constexpr int kStrafeAxis = frc::Joystick::kDefaultXChannel;
+constexpr int kForwardAxis = frc::Joystick::kDefaultYChannel;
+constexpr int kRotationAxis = frc::Joystick::kDefaultTwistChannel;
+constexpr int kThrottleAxis = frc::Joystick::kDefaultThrottleChannel;
 constexpr int kFieldRelativeButton = frc::XboxController::Button::kRightBumper;
 
 constexpr auto kMaxTeleopSpeed = 15.7_fps;
@@ -148,6 +149,11 @@ void RobotContainer::ConfigureBindings() {
     return OperatorConstants::kMaxTeleopTurnSpeed * squaredInput;
   };
 
+  auto speed = [this]() -> double { 
+    int input = (100 * m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis));
+    return input;
+  };
+
   // Constantly updating for alliance checks.
   auto checkRed = [this]() -> bool { return m_isRed; };
 
@@ -157,8 +163,7 @@ void RobotContainer::ConfigureBindings() {
   m_swerveController.Button(12).OnTrue(m_swerve.ZeroHeadingCommand());
 
   m_swerveController.Button(9).ToggleOnTrue(
-      m_swerve.SwerveCommand(fwd, strafe, rot));
-  m_swerveController.Button(1).ToggleOnTrue(m_swerve.SwerveSlowCommand(fwd, strafe, rot, checkRed));
+      m_swerve.SwerveSlowCommand(fwd, strafe, rot, speed, checkRed));
 
   DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose, m_isRed));
   
