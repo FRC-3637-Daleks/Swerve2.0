@@ -119,13 +119,6 @@ public:
                     std::function<units::revolutions_per_minute_t()> rot,
                     std::function<bool()> isRed);
 
-  // frc2::CommandPtr FollowPathCommand(frc::Pose2d desiredPose,
-  //                                     std::vector<frc::Translation2d> waypoints,
-  //                                     units::meters_per_second_t maxSpeed,
-  //                                     units::meters_per_second_squared_t maxAccel,
-  //                                     units::radians_per_second_t maxAngularSpeed,
-  //                                     units::radians_per_second_squared_t maxAngularAccel,
-  //                                     bool isRed);
 
 frc2::CommandPtr DriveToPoseCommand(
     frc::Pose2d desiredPose,

@@ -160,8 +160,8 @@ void RobotContainer::ConfigureBindings() {
       m_swerve.SwerveCommand(fwd, strafe, rot));
   m_swerveController.Button(1).ToggleOnTrue(m_swerve.SwerveSlowCommand(fwd, strafe, rot, checkRed));
 
-  DriveToPoseTrigger.OnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose, m_isRed));
-
+  DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose, m_isRed));
+  
 }
 
 void RobotContainer::ConfigureDashboard() {

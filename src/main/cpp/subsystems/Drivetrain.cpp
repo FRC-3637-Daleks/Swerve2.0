@@ -269,15 +269,6 @@ void Drivetrain::UpdateDashboard() {
                                   m_gyro.IsCalibrating());
   frc::SmartDashboard::PutNumber("Swerve/Robot heading",
                                  GetHeading().Degrees().value());
-  //   auto wheel_speeds = each_module([](SwerveModule& m) {
-  //   return m.GetState().speed.convert<units::meters_per_second>().value();
-  // });
-  // frc::SmartDashboard::PutNumber(
-  //     "Robot Speed",
-  //     std::accumulate(wheel_speeds.begin(), wheel_speeds.end(), 0.0)/4);
-
-  //sorry eric, your fancy c++ said that the robots speed was 0
-  //when the modules arent all facing the same direction.
   frc::SmartDashboard::PutNumber(
       "Robot Speed", GetSpeed().to<double>());
   frc::SmartDashboard::PutData("zeroEncodersCommand",
@@ -324,47 +315,15 @@ frc2::CommandPtr Drivetrain::SwerveSlowCommand(
   });
 }
 
-// frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
-//                                       std::vector<frc::Translation2d> waypoints,
-//                                       units::meters_per_second_t maxSpeed,
-//                                       units::meters_per_second_squared_t maxAccel,
-//                                       units::radians_per_second_t maxAngularSpeed,
-//                                       units::radians_per_second_squared_t maxAngularAccel,
-//                                       bool isRed) {
-//   auto currentPose = GetPose();
-//   frc::TrajectoryConfig config{maxSpeed, maxAccel};
-//   config.SetKinematics(kDriveKinematics);
-//   frc::TrapezoidProfile<units::radians>::Constraints 
-//     kTurnConstraints{maxAngularSpeed, maxAngularAccel};
-
-//   auto trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
-//     currentPose, waypoints, desiredPose, config);
-
-
-//   frc::ProfiledPIDController<units::radians> thetaController{
-//                                              kPTurn, kITurn, kDTurn, kTurnConstraints};
-//   thetaController.EnableContinuousInput(units::radian_t{-std::numbers::pi},
-//                                         units::radian_t{std::numbers::pi});
-//   frc2::CommandPtr m_swerveControllerCommand =
-//     frc2::SwerveControllerCommand<4>(trajectory,
-//                                      [this]() {return GetPose();}, kDriveKinematics,
-//                                      frc::PIDController{7.0, 0.0, 0.0},
-//                                      frc::PIDController{5.0, 0.0, 0.0},
-//                                      thetaController,
-//                                      [this](auto moduleStates) {SetModuleStates(moduleStates);}).ToPtr();
-
-//   return frc2::cmd::Sequence(
-//     std::move(m_swerveControllerCommand),
-//     frc2::InstantCommand(
-//       [this, isRed] { Drive(0_mps, 0_mps, 0_rad_per_s, true, isRed);}, {})
-//       .ToPtr());
-// }
-
 frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
                                       bool isRed,
                                       units::meters_per_second_t endVelo,
                                       frc::Pose2d tolerance)  {
+  //I know, I know, no more commits but i had to finish what I started,
+  //and I was very bored
   auto ret_cmd = RunEnd([=]  {
+    RunOnce([this] ()
+      {return GetDefaultCommand()->Cancel();});
     auto currentPose = GetPose();
     auto desiredRot = desiredPose.Rotation();
     m_holonomicController.SetEnabled(true);
@@ -373,6 +332,7 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(frc::Pose2d desiredPose,
     auto states = m_holonomicController.Calculate(
         currentPose, desiredPose, endVelo, desiredRot);
     Drive(states.vx, states.vy, states.omega, false, isRed);},
+     //sends the pose out to narnia
     [this](){m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
              m_holonomicController.SetEnabled(false);})
   .Until([this, desiredPose, tolerance] {
