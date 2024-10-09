@@ -269,8 +269,8 @@ void Drivetrain::UpdateDashboard() {
                                   m_gyro.IsCalibrating());
   frc::SmartDashboard::PutNumber("Swerve/Robot heading",
                                  GetHeading().Degrees().value());
-  frc::SmartDashboard::PutNumber(
-      "Robot Speed", GetSpeed().to<double>());
+  frc::SmartDashboard::PutNumber("Robot Speed",
+                                 GetSpeed().to<double>());
   frc::SmartDashboard::PutData("zeroEncodersCommand",
                                zeroEncodersCommand.get());
 
@@ -280,8 +280,9 @@ void Drivetrain::UpdateDashboard() {
 
   frc::SmartDashboard::PutData("PDH", &m_pdh);
 
-  frc::SmartDashboard::PutData("Swerve/ThetaPIDController", &m_thetaPID);
-  frc::SmartDashboard::PutData("Swerve/XYPIDController", &m_XYController);
+  frc::SmartDashboard::PutData("Swerve/ThetaPIDController", &m_holonomicController.getThetaController());
+  frc::SmartDashboard::PutData("Swerve/XPIDController", &m_holonomicController.getXController());
+  frc::SmartDashboard::PutData("Swerve/YPIDController", &m_holonomicController.getYController());
   double error[] = {m_holonomicController.getXController().GetPositionError(),
                     m_holonomicController.getYController().GetPositionError(),
                     m_holonomicController.getThetaController().GetPositionError().to<double>()};
