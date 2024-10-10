@@ -120,20 +120,20 @@ public:
 
   // Drive the robot with swerve controls.
   frc2::CommandPtr SwerveCommand(
-    std::function<units::meters_per_second_t()> forward,
-    std::function<units::meters_per_second_t()> strafe,
-    std::function<units::revolutions_per_minute_t()> rot);
+    linear_cmd_supplier_t forward,
+    linear_cmd_supplier_t strafe,
+    rotation_cmd_supplier_t rot);
 
   // Drive the robot with field-relative swerve controls.
   frc2::CommandPtr SwerveCommandFieldRelative(
-    std::function<units::meters_per_second_t()> forward,
-    std::function<units::meters_per_second_t()> strafe,
-    std::function<units::revolutions_per_minute_t()> rot);
+    linear_cmd_supplier_t forward,
+    linear_cmd_supplier_t strafe,
+    rotation_cmd_supplier_t rot);
 
   // Drives the robot to 'desiredPose()' with feedforward 'endVelo'
   // until its within 'tolerance' of 'desiredPose'
   frc2::CommandPtr DriveToPoseCommand(
-    std::function<frc::Pose2d()> desiredPoseSupplier,
+    pose_supplier_t desiredPoseSupplier,
     units::meters_per_second_t endVelo = 0.0_mps,
     const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
   
@@ -150,7 +150,7 @@ public:
   // or until the specified timeout.
   // Should be bound to triggers with WhileTrue
   frc2::CommandPtr DriveToPoseIndefinitelyCommand(
-    std::function<frc::Pose2d()> desiredPoseSupplier,
+    pose_supplier_t desiredPoseSupplier,
     units::second_t timeout = 3.0_s) {
     return DriveToPoseCommand(std::move(desiredPoseSupplier), 0.0_mps, {}).WithTimeout(timeout);
   }

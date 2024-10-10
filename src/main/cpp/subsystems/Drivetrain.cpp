@@ -278,25 +278,25 @@ void Drivetrain::UpdateDashboard() {
 }
 
 frc2::CommandPtr Drivetrain::SwerveCommand(
-    std::function<units::meters_per_second_t()> forward,
-    std::function<units::meters_per_second_t()> strafe,
-    std::function<units::revolutions_per_minute_t()> rot) {
+    linear_cmd_supplier_t forward,
+    linear_cmd_supplier_t strafe,
+    rotation_cmd_supplier_t rot) {
   return this->Run([=, this] {
     Drive(frc::ChassisSpeeds{forward(), strafe(), rot()});
   });
 }
 
 frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
-    std::function<units::meters_per_second_t()> forward,
-    std::function<units::meters_per_second_t()> strafe,
-    std::function<units::revolutions_per_minute_t()> rot) {
+    linear_cmd_supplier_t forward,
+    linear_cmd_supplier_t strafe,
+    rotation_cmd_supplier_t rot) {
   return this->Run([=, this] {
     DriveFieldRelative(frc::ChassisSpeeds{forward(), strafe(), rot()});
   });
 }
 
 frc2::CommandPtr Drivetrain::DriveToPoseCommand(
-  std::function<frc::Pose2d()> desiredPoseSupplier,
+  pose_supplier_t desiredPoseSupplier,
   units::meters_per_second_t endVelo,
   const frc::Pose2d &tolerance)  {
   return this->RunEnd(
