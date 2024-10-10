@@ -123,57 +123,53 @@ RobotContainer::RobotContainer()
 }
 
 void RobotContainer::ConfigureBindings() {
+  auto throttle = [this]() -> double { 
+    return m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis);
+  };
+
   // Configure Swerve Bindings.
-  auto fwd = [this]() -> units::meters_per_second_t {
+  auto fwd = [this, throttle]() -> units::meters_per_second_t {
     auto input = frc::ApplyDeadband(
         -m_swerveController.GetRawAxis(OperatorConstants::kForwardAxis),
         OperatorConstants::kDeadband);
     auto squaredInput =
         input * std::abs(input); // square the input while preserving the sign
     auto alliance_flip = IsRed()? -1:1;
-    return OperatorConstants::kMaxTeleopSpeed * squaredInput * alliance_flip;
+    return OperatorConstants::kMaxTeleopSpeed 
+      * squaredInput
+      * alliance_flip
+      * throttle();
   };
 
-  auto strafe = [this]() -> units::meters_per_second_t {
+  auto strafe = [this, throttle]() -> units::meters_per_second_t {
     auto input = frc::ApplyDeadband(
         -m_swerveController.GetRawAxis(OperatorConstants::kStrafeAxis),
         OperatorConstants::kDeadband);
     auto squaredInput = input * std::abs(input);
     auto alliance_flip = IsRed()? -1:1;
-    return OperatorConstants::kMaxTeleopSpeed * squaredInput * alliance_flip;
+    return OperatorConstants::kMaxTeleopSpeed
+      * squaredInput
+      * alliance_flip
+      * throttle();
   };
 
-  auto rot = [this]() -> units::revolutions_per_minute_t {
+  auto rot = [this, throttle]() -> units::revolutions_per_minute_t {
     auto input = frc::ApplyDeadband(
         -m_swerveController.GetRawAxis(OperatorConstants::kRotationAxis),
         OperatorConstants::kDeadband);
     auto squaredInput = input * std::abs(input);
-    return OperatorConstants::kMaxTeleopTurnSpeed * squaredInput;
+    return OperatorConstants::kMaxTeleopTurnSpeed
+      * squaredInput
+      * throttle();
   };
-
-  auto speed = [this]() -> double { 
-    return m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis);
-  };
-
-  // Constantly updating for alliance checks.
-  auto checkRed = [this]() -> bool { return m_isRed; };
 
   m_swerve.SetDefaultCommand(
       m_swerve.SwerveCommandFieldRelative(fwd, strafe, rot));
 
   m_swerveController.Button(12).OnTrue(m_swerve.ZeroHeadingCommand());
 
-  m_swerveController.Button(9).ToggleOnTrue(
-    m_swerve.SwerveCommandFieldRelative(
-      [fwd, speed] {return fwd()/speed();},
-      [strafe, speed] {return strafe()/speed();},
-      [rot, speed] {return rot()/speed();}
-    )
-  );
-
   DriveToPoseTrigger.ToggleOnTrue(
-    //m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose)
-    m_swerve.ZTargetCommand(fwd, strafe, [] {return AutoConstants::desiredPose;})
+    m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose)
   );
 
   DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose));
