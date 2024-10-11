@@ -304,7 +304,6 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
       auto desiredPose = desiredPoseSupplier();
       auto currentPose = GetPose();
       auto desiredRot = desiredPose.Rotation();
-      m_holonomicController.SetEnabled(true);
       m_holonomicController.SetTolerance(tolerance);
       m_field.GetObject("Desired Pose")->SetPose(desiredPose);
       const auto speeds = m_holonomicController.Calculate(
@@ -313,7 +312,6 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
     },
     [this] {
       m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
-      m_holonomicController.SetEnabled(false);
     })
     .Until([=, this] {
       return AtPose(desiredPoseSupplier(), tolerance);
