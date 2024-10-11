@@ -168,7 +168,7 @@ void RobotContainer::ConfigureBindings() {
   
   m_swerveController.Button(12).OnTrue(m_swerve.ZeroHeadingCommand());
 
-  DriveToPoseTrigger.ToggleOnTrue(
+  DriveToPoseTrigger.WhileTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose)
   );
 }
