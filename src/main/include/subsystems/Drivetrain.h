@@ -264,6 +264,30 @@ public:
   frc2::CommandPtr ConfigAbsEncoderCommand();
 
 private:
+  frc::SwerveDriveKinematics<4> kDriveKinematics;
+  std::array<SwerveModule, kNumModules> m_modules;
+
+  AHRS m_gyro;
+
+  frc::PowerDistribution m_pdh;
+
+  // Pose Estimator for estimating the robot's position on the field.
+  frc::SwerveDrivePoseEstimator<4> m_poseEstimator;
+
+  // Field widget for Shuffleboard.
+  frc::Field2d m_field;
+
+  // Stores controllers for each motion axis
+  frc::HolonomicDriveController m_holonomicController;
+  
+  // For placement on Dashboard
+  frc2::CommandPtr zeroEncodersCommand{ZeroAbsEncodersCommand()};
+
+private:
+  friend class DrivetrainSimulation;
+  std::unique_ptr<DrivetrainSimulation> m_sim_state;
+
+private:
   // magic to make doing stuff for every module easier
   auto each_module(auto&& fn)
   {
@@ -353,28 +377,4 @@ private:
 
   auto robot_twist(auto &&twist)
   {return [twist = std::forward<decltype(twist)>(twist)] {return twist;};}
-
-private:
-  frc::SwerveDriveKinematics<4> kDriveKinematics;
-  std::array<SwerveModule, kNumModules> m_modules;
-
-  AHRS m_gyro;
-
-  frc::PowerDistribution m_pdh;
-
-  // Pose Estimator for estimating the robot's position on the field.
-  frc::SwerveDrivePoseEstimator<4> m_poseEstimator;
-
-  // Field widget for Shuffleboard.
-  frc::Field2d m_field;
-
-  // Stores controllers for each motion axis
-  frc::HolonomicDriveController m_holonomicController;
-  
-  // For placement on Dashboard
-  frc2::CommandPtr zeroEncodersCommand{ZeroAbsEncodersCommand()};
-
-private:
-  friend class DrivetrainSimulation;
-  std::unique_ptr<DrivetrainSimulation> m_sim_state;
 };
