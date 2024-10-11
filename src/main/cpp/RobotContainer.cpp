@@ -164,16 +164,13 @@ void RobotContainer::ConfigureBindings() {
   };
 
   m_swerve.SetDefaultCommand(
-      m_swerve.SwerveCommandFieldRelative(fwd, strafe, rot));
-
+      m_swerve.CustomSwerveCommand(fwd, strafe, rot));
+  
   m_swerveController.Button(12).OnTrue(m_swerve.ZeroHeadingCommand());
 
   DriveToPoseTrigger.ToggleOnTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose)
   );
-
-  DriveToPoseTrigger.ToggleOnTrue(m_swerve.DriveToPoseCommand(AutoConstants::desiredPose));
-  
 }
 
 void RobotContainer::ConfigureDashboard() {

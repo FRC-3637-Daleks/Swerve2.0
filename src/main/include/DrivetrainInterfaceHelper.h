@@ -5,6 +5,8 @@
 #include <units/angle.h>
 #include <units/angular_velocity.h>
 
+#include <frc/geometry/Pose2d.h>
+
 #include <concepts>
 
 template<typename T>

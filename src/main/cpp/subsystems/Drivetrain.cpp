@@ -151,7 +151,7 @@ void Drivetrain::Periodic() {
 
 Drivetrain::~Drivetrain() {}
 
-void Drivetrain::Drive(const frc::ChassisSpeeds &cmd_vel) {
+void Drivetrain::RobotRelativeDrive(const frc::ChassisSpeeds &cmd_vel) {
   auto states = kDriveKinematics.ToSwerveModuleStates(cmd_vel);
 
   // Occasionally a drive motor is commanded to go faster than its maximum
@@ -163,8 +163,10 @@ void Drivetrain::Drive(const frc::ChassisSpeeds &cmd_vel) {
   SetModuleStates(states);
 }
 
-void Drivetrain::DriveFieldRelative(const frc::ChassisSpeeds &cmd_vel) {
-  Drive(frc::ChassisSpeeds::FromFieldRelativeSpeeds(cmd_vel, GetHeading()));
+void Drivetrain::Drive(const frc::ChassisSpeeds &cmd_vel) {
+  RobotRelativeDrive(
+    frc::ChassisSpeeds::FromFieldRelativeSpeeds(
+      cmd_vel, GetHeading()));
 }
 
 void Drivetrain::SetModuleStates(
@@ -277,21 +279,17 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutNumberArray("Error", error);
 }
 
-frc2::CommandPtr Drivetrain::SwerveCommand(
-    linear_cmd_supplier_t forward,
-    linear_cmd_supplier_t strafe,
-    rotation_cmd_supplier_t rot) {
+frc2::CommandPtr Drivetrain::RobotRelativeSwerveCommand(
+    chassis_speed_supplier_t cmd_vel) {
   return this->Run([=, this] {
-    Drive(frc::ChassisSpeeds{forward(), strafe(), rot()});
+    RobotRelativeDrive(cmd_vel());
   });
 }
 
-frc2::CommandPtr Drivetrain::SwerveCommandFieldRelative(
-    linear_cmd_supplier_t forward,
-    linear_cmd_supplier_t strafe,
-    rotation_cmd_supplier_t rot) {
+frc2::CommandPtr Drivetrain::BasicSwerveCommand(
+    chassis_speed_supplier_t cmd_vel) {
   return this->Run([=, this] {
-    DriveFieldRelative(frc::ChassisSpeeds{forward(), strafe(), rot()});
+    Drive(cmd_vel());
   });
 }
 
@@ -308,7 +306,7 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
       m_field.GetObject("Desired Pose")->SetPose(desiredPose);
       const auto speeds = m_holonomicController.Calculate(
           currentPose, desiredPose, endVelo, desiredRot);
-      Drive(speeds);
+      RobotRelativeDrive(speeds);
     },
     [this] {
       m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
