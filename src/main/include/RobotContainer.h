@@ -45,6 +45,10 @@ public:
   frc2::Trigger DriveToPoseTrigger{[this]() -> bool {
     return m_swerveController.GetPOV() == 90; //right on DPad
   }};
+
+  frc2::Trigger FollowPathTrigger{[this]() -> bool {
+    return m_swerveController.GetPOV() == 180; //right on DPad
+  }};
   // The robot's subsystems are defined here...
 
   Drivetrain m_swerve;

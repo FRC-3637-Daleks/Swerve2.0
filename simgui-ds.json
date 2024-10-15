@@ -9,11 +9,6 @@
       "visible": true
     }
   },
-  "Keyboard 0 Settings": {
-    "window": {
-      "visible": true
-    }
-  },
   "System Joysticks": {
     "window": {
       "visible": false
@@ -55,6 +50,7 @@
       ],
       "povConfig": [
         {
+          "key180": 57,
           "key90": 56
         }
       ],

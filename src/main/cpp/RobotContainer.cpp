@@ -123,10 +123,11 @@ RobotContainer::RobotContainer()
 }
 
 void RobotContainer::ConfigureBindings() {
-  auto throttle = [this]() -> double { 
-    return m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis);
+    auto throttle = [this]() -> double { 
+    double input = m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis);
+    double ret = ((-input +1))/2;
+    return ret;
   };
-
   // Configure Swerve Bindings.
   auto fwd = [this, throttle]() -> units::meters_per_second_t {
     auto input = frc::ApplyDeadband(
@@ -169,8 +170,10 @@ void RobotContainer::ConfigureBindings() {
   m_swerveController.Button(12).OnTrue(m_swerve.ZeroHeadingCommand());
 
   DriveToPoseTrigger.WhileTrue(
-    m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose)
-  );
+    m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
+
+  FollowPathTrigger.OnTrue(m_swerve.FollowPathCommand(AutoConstants::desiredPose,
+                              AutoConstants::waypointzVector));
 }
 
 void RobotContainer::ConfigureDashboard() {

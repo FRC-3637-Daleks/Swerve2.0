@@ -9,8 +9,6 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc2/command/FunctionalCommand.h>
 #include <frc2/command/ProfiledPIDCommand.h>
-#include <frc/trajectory/Trajectory.h>
-#include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc2/command/SequentialCommandGroup.h>
 #include <frc2/command/SwerveControllerCommand.h>
 #include <frc2/command/Commands.h>
@@ -35,6 +33,7 @@
 
 namespace DriveConstants {
 constexpr auto kMaxSpeed = 15.7_fps;
+constexpr auto kMaxAccel = 6_mps_sq;
 constexpr auto kWeight = 123_lb;
 constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
 constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
@@ -100,8 +99,8 @@ public:
 Drivetrain::Drivetrain()
     : kDriveKinematics{
         frc::Translation2d{ kWheelBase/2,  kTrackWidth/2},
-        frc::Translation2d{ kWheelBase/2, -kTrackWidth/2},
-        frc::Translation2d{-kWheelBase/2,  kTrackWidth/2},
+        frc::Translation2d{ -kWheelBase/2, kTrackWidth/2},
+        frc::Translation2d{ kWheelBase/2,  -kTrackWidth/2},
         frc::Translation2d{-kWheelBase/2, -kTrackWidth/2}},
       m_modules{{
         {"FL",
@@ -126,7 +125,8 @@ Drivetrain::Drivetrain()
       m_poseEstimator{
         kDriveKinematics, GetGyroHeading(), each_position(), frc::Pose2d()},
       m_sim_state(new DrivetrainSimulation(*this)),
-      m_holonomicController(kTranslatePID, kTranslatePID, kThetaPID) {
+      m_holonomicController(kTranslatePID, kTranslatePID, kThetaPID),
+      m_trajConfig(kMaxSpeed, kMaxAccel)  {
   
   InitializeDashboard();
 
@@ -316,6 +316,30 @@ frc2::CommandPtr Drivetrain::DriveToPoseCommand(
     }
   );
 };
+
+frc2::CommandPtr Drivetrain::FollowPathCommand(
+  const frc::Pose2d &desiredPose,
+  const std::vector<frc::Translation2d> &waypoints,
+  units::meters_per_second_t endVelo,
+  const frc::Pose2d &tolerance)   {
+    return this->Run(
+    [=, this] {
+      auto currentPose = GetPose();
+      auto desiredRot = desiredPose.Rotation();
+      m_trajConfig.SetKinematics(kDriveKinematics);
+      m_trajConfig.SetStartVelocity(GetSpeed());
+      m_trajConfig.SetEndVelocity(endVelo);
+      auto trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
+        currentPose, waypoints, desiredPose, m_trajConfig);
+      m_holonomicController.SetTolerance(tolerance);
+      m_field.GetObject("Robo Path")->SetTrajectory(trajectory);
+      auto trajcont = frc2::SwerveControllerCommand<4>(trajectory, [=]{return currentPose;}, 
+        kDriveKinematics, m_holonomicController, [=]{return desiredRot;}, 
+        [=, this](auto moduleStates) {SetModuleStates(moduleStates);}).ToPtr();
+      return 
+    std::move(trajcont);
+    });
+}
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
   return this->RunOnce([&] { ZeroHeading(); });
