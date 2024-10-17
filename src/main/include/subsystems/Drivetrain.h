@@ -13,6 +13,7 @@
 #include <frc/controller/HolonomicDriveController.h>
 #include <frc/trajectory/Trajectory.h>
 #include <frc/trajectory/TrajectoryGenerator.h>
+#include <frc/trajectory/TrajectoryParameterizer.h>
 
 #include <units/velocity.h>
 #include <units/acceleration.h>
@@ -101,6 +102,26 @@ public:
 
   void CoastMode(bool coast);
 
+  private:
+
+  void DriveToPose(
+    const frc::Trajectory::State &state,
+    const frc::Pose2d &tolerance = {0.0_m, 0.0_m, 0_deg});
+
+  void DriveToPose(
+    pose_supplier_t desiredPoseSupplier,
+    units::meters_per_second_t endVelo = 0.0_mps,
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
+
+  void DriveToPose(
+    const frc::Pose2d &desiredPose,
+    units::meters_per_second_t endVelo = 0.0_mps,
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg})
+    {return DriveToPose([desiredPose] {return desiredPose;}, 
+    endVelo, tolerance);}
+
+  public:
+
   // Returns the rotational velocity of the robot in degrees per second.
   units::degrees_per_second_t GetTurnRate();
 
@@ -139,7 +160,18 @@ public:
   frc2::CommandPtr DriveToPoseCommand(
     pose_supplier_t desiredPoseSupplier,
     units::meters_per_second_t endVelo = 0.0_mps,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg}){
+  return this->RunEnd(
+    [=, this] {DriveToPose(desiredPoseSupplier, endVelo, tolerance);
+    },
+    [this] {
+      m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
+    })
+    .Until([=, this] {
+      return AtPose(desiredPoseSupplier(), tolerance);
+    }
+  );
+};
   
   frc2::CommandPtr DriveToPoseCommand(
     const frc::Pose2d &desiredPose,
@@ -166,17 +198,19 @@ public:
       [desiredPose] {return desiredPose;}, timeout);
   }
 
-  frc2::CommandPtr FollowPathCommand(
-    const frc::Pose2d &desiredPose,
+    frc2::CommandPtr FollowPathCommand(
+    pose_supplier_t desiredPoseSupplier,
     const std::vector<frc::Translation2d> &waypoints,
     units::meters_per_second_t endVelo = 0.0_mps,
     const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
 
   frc2::CommandPtr FollowPathCommand(
-    pose_supplier_t desiredPoseSupplier,
+    const frc::Pose2d &desiredPose,
     const std::vector<frc::Translation2d> &waypoints,
     units::meters_per_second_t endVelo = 0.0_mps,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg})
+    {return FollowPathCommand([desiredPose] {return desiredPose;},
+     waypoints, endVelo, tolerance);}
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:
