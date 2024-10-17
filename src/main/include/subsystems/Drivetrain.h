@@ -197,20 +197,6 @@ public:
     return DriveToPoseIndefinitelyCommand(
       [desiredPose] {return desiredPose;}, timeout);
   }
-
-    frc2::CommandPtr FollowPathCommand(
-    pose_supplier_t desiredPoseSupplier,
-    const std::vector<frc::Translation2d> &waypoints,
-    units::meters_per_second_t endVelo = 0.0_mps,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
-
-  frc2::CommandPtr FollowPathCommand(
-    const frc::Pose2d &desiredPose,
-    const std::vector<frc::Translation2d> &waypoints,
-    units::meters_per_second_t endVelo = 0.0_mps,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg})
-    {return FollowPathCommand([desiredPose] {return desiredPose;},
-     waypoints, endVelo, tolerance);}
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:
