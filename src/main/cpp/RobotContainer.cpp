@@ -171,9 +171,6 @@ void RobotContainer::ConfigureBindings() {
 
   DriveToPoseTrigger.WhileTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
-
-  FollowPathTrigger.OnTrue(m_swerve.FollowPathCommand(AutoConstants::desiredPose,
-                              AutoConstants::waypointzVector));
 }
 
 void RobotContainer::ConfigureDashboard() {
