@@ -349,6 +349,39 @@ frc2::CommandPtr Drivetrain::BasicSwerveCommand(
     Drive(cmd_vel());
   });
 }
+frc::Trajectory Drivetrain::trajGenerator(
+    pose_supplier_t desiredPoseSupplier,
+    const std::vector<frc::Translation2d> &waypoints)
+    {
+      return
+        frc::TrajectoryGenerator::GenerateTrajectory({0.0_m, 0.0_m, 0_deg},
+        waypoints, desiredPoseSupplier(), m_trajConfig);
+    }
+
+// frc2::CommandPtr Drivetrain::FollowPathCommand(
+//     pose_supplier_t desiredPoseSupplier,
+//     const std::vector<frc::Translation2d> &waypoints,
+//     units::meters_per_second_t endVelo,
+//     const frc::Pose2d &tolerance)   {
+//     auto trajectory = std::make_shared<frc::Trajectory>();
+//     return this->RunOnce([=, this] {
+//       auto currentPose = GetPose();
+//       auto desiredPose = desiredPoseSupplier();
+//       auto desiredRot = desiredPose.Rotation();
+//       m_trajConfig.SetKinematics(kDriveKinematics);
+//       m_trajConfig.SetStartVelocity(GetSpeed());
+//       m_trajConfig.SetEndVelocity(endVelo);
+//       *trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
+//         currentPose, waypoints, desiredPose, m_trajConfig);
+//     }).AndThen(Run(
+//     [=, this] {
+//       m_field.GetObject("Robot Traj")->SetTrajectory(*trajectory);
+//       m_field.GetObject("Traj Pose")->SetPose(trajectory->States()[100].pose);
+//       auto states = trajectory->States();
+//       for(auto state : states)
+//       DriveToPose(state, tolerance);
+//     }));
+// }
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
   return this->RunOnce([&] { ZeroHeading(); });

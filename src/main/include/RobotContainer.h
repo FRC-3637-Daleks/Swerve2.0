@@ -20,6 +20,7 @@
 
 #include "subsystems/Drivetrain.h"
 #include "subsystems/ROSBridge.h"
+#include "PathFollower.h"
 
 
 /**

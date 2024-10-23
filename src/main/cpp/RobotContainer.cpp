@@ -216,7 +216,12 @@ void RobotContainer::ConfigureContinuous() {
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
-  return frc2::cmd::None();
+  auto traj = m_swerve.trajGenerator([this] {return AutoConstants::desiredPose;},
+  AutoConstants::waypointzVector);
+   auto m_followPath = PathFollower(
+      traj, [this] {return m_swerve.GetPose();}, 
+      {m_swerve}).ToPtr();
+    return m_followPath;
 }
 
 frc2::CommandPtr RobotContainer::GetDisabledCommand() {
