@@ -198,6 +198,9 @@ public:
       [desiredPose] {return desiredPose;}, timeout);
   }
 
+  frc::Trajectory trajGenerator(pose_supplier_t desiredPoseSupplier,
+    const std::vector<frc::Translation2d> &waypoints);
+
     frc2::CommandPtr FollowPathCommand(
     pose_supplier_t desiredPoseSupplier,
     const std::vector<frc::Translation2d> &waypoints,
@@ -211,6 +214,13 @@ public:
     const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg})
     {return FollowPathCommand([desiredPose] {return desiredPose;},
      waypoints, endVelo, tolerance);}
+
+  std::function<frc::SwerveDriveKinematics<4>()> kineThingy = [this]
+  {return kDriveKinematics;};
+
+  std::function<frc::HolonomicDriveController()> holoThingy = [this] {
+    return m_holonomicController;
+  };
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:

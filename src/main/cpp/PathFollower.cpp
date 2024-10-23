@@ -16,24 +16,25 @@
 #include <random>
 
 PathFollower::PathFollower(frc::Trajectory trajectory,
-                frc::HolonomicDriveController holonomicController,
-                frc::SwerveDriveKinematics<4>* driveKinematics,
-                pose_supplier_t* desiredPoseSupplier,
-                std::function<void(frc::ChassisSpeeds speeds)>* output,
-                Drivetrain* subsystem, 
-                frc::Pose2d tolerance) 
+                pose_supplier_t desiredPoseSupplier,
+                Drivetrain &subsystem) 
         : m_trajectory{std::move(trajectory)},
-          m_holonomicController{holonomicController}, 
-          m_driveSubsystem{subsystem},  
-          m_kinematics{driveKinematics},
-          m_tolerance{tolerance}
+          m_holonomicController{m_driveSubsystem.holoThingy()}, 
+          m_driveSubsystem{subsystem},
+          m_desiredPoseSupplier{desiredPoseSupplier},
+          m_output{
+            [this] (auto states) {m_driveSubsystem.SetModuleStates(states);}},  
+          m_kinematics{m_driveSubsystem.kineThingy()}
 {
-    AddRequirements(subsystem);
+    AddRequirements(&m_driveSubsystem);
 };
 
-void PathFollower::Initialize() {
-    m_holonomicController.SetTolerance(m_tolerance);}
-
 void PathFollower::Execute() {
-    
+  frc2::cmd::Run([this] {
+    frc2::SwerveControllerCommand<4>{
+      m_trajectory, m_desiredPoseSupplier,
+      m_kinematics, m_holonomicController,
+      m_output, {&m_driveSubsystem}};})
+      .Until([this] {return m_driveSubsystem.AtPose(
+      m_desiredPoseSupplier());});
 }
