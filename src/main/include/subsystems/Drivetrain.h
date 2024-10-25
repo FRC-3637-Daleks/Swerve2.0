@@ -129,8 +129,9 @@ public:
 
   bool AtPose(
     const frc::Pose2d &desiredPose,
-    const frc::Pose2d &tolerance={0.06_m, 0.06_m, 2_deg},
-    const units::meters_per_second_t endVelo = 0.02_mps);
+    const frc::Pose2d &tolerance={0.06_m, 0.06_m, 2_deg});
+
+  bool IsStopped();
 
   // Returns Current Chassis Speed
   frc::ChassisSpeeds GetChassisSpeed();
@@ -166,7 +167,8 @@ public:
       m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
     })
     .Until([=, this] {
-      return AtPose(desiredPoseSupplier(), tolerance, endVelo);
+      return AtPose(desiredPoseSupplier(), tolerance) &&
+        IsStopped();
     }
   );
 };
@@ -225,7 +227,7 @@ public:
     {return FollowPathCommand([desiredPose] {return desiredPose;},
      waypoints, endVelo, tolerance);}
 
-    frc2::CommandPtr FollowPathCommand(frc::Trajectory trajectory);
+  frc2::CommandPtr FollowPathCommand(frc::Trajectory trajectory);
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:

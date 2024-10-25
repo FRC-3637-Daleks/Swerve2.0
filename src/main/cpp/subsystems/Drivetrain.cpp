@@ -243,15 +243,18 @@ units::meters_per_second_t Drivetrain::GetSpeed(){
   return units::math::sqrt(speeds.vx*speeds.vx + speeds.vy*speeds.vy);
 }
 
-bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance,
-                        const units::meters_per_second_t endVelo) {
+bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance) {
   auto currentPose = GetPose();
   auto poseError = currentPose.RelativeTo(desiredPose);
   return (units::math::abs(poseError.X()) < tolerance.X()) &&
          (units::math::abs(poseError.Y()) < tolerance.Y()) &&
-         (units::math::abs(poseError.Rotation().Degrees()) < tolerance.Rotation().Degrees()) &&
-         (GetSpeed() < endVelo);
+         (units::math::abs(poseError.Rotation().Degrees()) < tolerance.Rotation().Degrees());
 } 
+
+bool Drivetrain::IsStopped()  {
+  auto currentSpeed = GetSpeed();
+  return currentSpeed < 0.1_mps;
+}
 
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
@@ -325,31 +328,6 @@ frc::Trajectory Drivetrain::trajGenerator(
         frc::TrajectoryGenerator::GenerateTrajectory({0.0_m, 0.0_m, 0_deg},
         waypoints, desiredPoseSupplier(), m_trajConfig);
     }
-
-// frc2::CommandPtr Drivetrain::FollowPathCommand(
-//     pose_supplier_t desiredPoseSupplier,
-//     const std::vector<frc::Translation2d> &waypoints,
-//     units::meters_per_second_t endVelo,
-//     const frc::Pose2d &tolerance)   {
-//     auto trajectory = std::make_shared<frc::Trajectory>();
-//     return this->RunOnce([=, this] {
-//       auto currentPose = GetPose();
-//       auto desiredPose = desiredPoseSupplier();
-//       auto desiredRot = desiredPose.Rotation();
-//       m_trajConfig.SetKinematics(kDriveKinematics);
-//       m_trajConfig.SetStartVelocity(GetSpeed());
-//       m_trajConfig.SetEndVelocity(endVelo);
-//       *trajectory = frc::TrajectoryGenerator::GenerateTrajectory(
-//         currentPose, waypoints, desiredPose, m_trajConfig);
-//     }).AndThen(Run(
-//     [=, this] {
-//       m_field.GetObject("Robot Traj")->SetTrajectory(*trajectory);
-//       m_field.GetObject("Traj Pose")->SetPose(trajectory->States()[100].pose);
-//       auto states = trajectory->States();
-//       for(auto state : states)
-//       DriveToPose(state, tolerance);
-//     }));
-// }
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
   return this->RunOnce([&] { ZeroHeading(); });
