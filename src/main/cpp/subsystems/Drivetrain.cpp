@@ -262,13 +262,14 @@ units::meters_per_second_t Drivetrain::GetSpeed(){
   return units::math::sqrt(speeds.vx*speeds.vx + speeds.vy*speeds.vy);
 }
 
-bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance) {
+bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance,
+                        const units::meters_per_second_t endVelo) {
   auto currentPose = GetPose();
   auto poseError = currentPose.RelativeTo(desiredPose);
   return (units::math::abs(poseError.X()) < tolerance.X()) &&
          (units::math::abs(poseError.Y()) < tolerance.Y()) &&
          (units::math::abs(poseError.Rotation().Degrees()) < tolerance.Rotation().Degrees()) &&
-         (GetSpeed() < .02_mps) && (GetTurnRate() < 2_deg_per_s);
+         (GetSpeed() < endVelo);
 } 
 
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {

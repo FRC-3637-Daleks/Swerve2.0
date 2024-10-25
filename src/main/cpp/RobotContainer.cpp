@@ -174,6 +174,11 @@ void RobotContainer::ConfigureBindings() {
 
   DriveToPoseTrigger.WhileTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
+  auto traj = m_swerve.trajGenerator(AutoConstants::desiredPose,
+    AutoConstants::waypointzVector);
+
+  FollowPathTrigger.OnTrue(m_swerve.FollowPathCommand(traj));
+
 }
 
 void RobotContainer::ConfigureDashboard() {
@@ -216,12 +221,7 @@ void RobotContainer::ConfigureContinuous() {
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
-  auto traj = m_swerve.trajGenerator([this] {return AutoConstants::desiredPose;},
-  AutoConstants::waypointzVector);
-   auto m_followPath = PathFollower(
-      traj, [this] {return m_swerve.GetPose();}, 
-      {m_swerve}).ToPtr();
-    return m_followPath;
+  return frc2::cmd::None();
 }
 
 frc2::CommandPtr RobotContainer::GetDisabledCommand() {

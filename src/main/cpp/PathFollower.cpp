@@ -16,25 +16,33 @@
 #include <random>
 
 PathFollower::PathFollower(frc::Trajectory trajectory,
-                pose_supplier_t desiredPoseSupplier,
                 Drivetrain &subsystem) 
-        : m_trajectory{std::move(trajectory)},
-          m_holonomicController{m_driveSubsystem.holoThingy()}, 
+        : m_trajectory{std::move(trajectory)}, 
           m_driveSubsystem{subsystem},
-          m_desiredPoseSupplier{desiredPoseSupplier},
-          m_output{
-            [this] (auto states) {m_driveSubsystem.SetModuleStates(states);}},  
-          m_kinematics{m_driveSubsystem.kineThingy()}
+          m_field{}
 {
     AddRequirements(&m_driveSubsystem);
 };
 
+void PathFollower::Initialize() {
+  m_timer.Reset();
+  m_timer.Start();
+  frc::SmartDashboard::PutData("Field", &m_field);
+}
+
 void PathFollower::Execute() {
-  frc2::cmd::Run([this] {
-    frc2::SwerveControllerCommand<4>{
-      m_trajectory, m_desiredPoseSupplier,
-      m_kinematics, m_holonomicController,
-      m_output, {&m_driveSubsystem}};})
-      .Until([this] {return m_driveSubsystem.AtPose(
-      m_desiredPoseSupplier());});
+    auto currentTime = m_timer.Get();
+    auto desiredState = m_trajectory.Sample(currentTime);
+    m_driveSubsystem.DriveToPose(desiredState, {0.0_m, 0.0_m, 0_deg});
+    m_field.GetObject("Trajectory")->SetTrajectory(m_trajectory);
+}
+
+void PathFollower::End(bool interrupted) {
+  m_timer.Stop();
+  m_field.GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
+}
+
+
+frc2::CommandPtr Drivetrain::FollowPathCommand(frc::Trajectory trajectory) {
+  return PathFollower{trajectory, *this}.ToPtr();
 }
