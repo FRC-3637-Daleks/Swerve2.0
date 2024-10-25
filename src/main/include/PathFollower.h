@@ -5,6 +5,7 @@
 #include <frc/DataLogManager.h>
 #include <frc/I2C.h>
 #include <frc/SPI.h>
+#include <frc/Timer.h>
 #include <frc/geometry/Pose2d.h>
 #include <frc/kinematics/SwerveModulePosition.h>
 #include <frc/simulation/LinearSystemSim.h>
@@ -36,18 +37,20 @@ class PathFollower
    * @param desiredPoseSupplier A function that returns the desired pose
    * @param subsystem The subsystem used by this command.
    */
-    explicit PathFollower(frc::Trajectory trajectory,
-                pose_supplier_t desiredPoseSupplier,
+    PathFollower(frc::Trajectory trajectory,
                 Drivetrain &subsystem);
 
+    void Initialize() override;
+
     void Execute() override;
+
+    void End(bool interrupted) override;
+
     private:
     frc::Trajectory m_trajectory;
-    frc::HolonomicDriveController m_holonomicController;
-    frc::SwerveDriveKinematics<4> m_kinematics;
-    pose_supplier_t m_desiredPoseSupplier;
-    swerve_state_modifier_t m_output;
     Drivetrain& m_driveSubsystem;
+    frc::Timer m_timer;
+    frc::Field2d m_field;
     };
 
 

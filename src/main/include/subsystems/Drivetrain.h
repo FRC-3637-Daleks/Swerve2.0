@@ -102,7 +102,6 @@ public:
 
   void CoastMode(bool coast);
 
-  private:
 
   void DriveToPose(
     const frc::Trajectory::State &state,
@@ -120,8 +119,6 @@ public:
     {return DriveToPose([desiredPose] {return desiredPose;}, 
     endVelo, tolerance);}
 
-  public:
-
   // Returns the rotational velocity of the robot in degrees per second.
   units::degrees_per_second_t GetTurnRate();
 
@@ -132,7 +129,8 @@ public:
 
   bool AtPose(
     const frc::Pose2d &desiredPose,
-    const frc::Pose2d &tolerance={0.06_m, 0.06_m, 2_deg});
+    const frc::Pose2d &tolerance={0.06_m, 0.06_m, 2_deg},
+    const units::meters_per_second_t endVelo = 0.02_mps);
 
   // Returns Current Chassis Speed
   frc::ChassisSpeeds GetChassisSpeed();
@@ -168,10 +166,17 @@ public:
       m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
     })
     .Until([=, this] {
-      return AtPose(desiredPoseSupplier(), tolerance);
+      return AtPose(desiredPoseSupplier(), tolerance, endVelo);
     }
   );
 };
+
+  frc2::CommandPtr DriveToPoseCommand(
+    const frc::Trajectory::State &state,
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg}) {
+    return DriveToPoseCommand(
+      [state] {return state.pose;}, state.velocity, tolerance);
+  }
   
   frc2::CommandPtr DriveToPoseCommand(
     const frc::Pose2d &desiredPose,
@@ -200,6 +205,11 @@ public:
 
   frc::Trajectory trajGenerator(pose_supplier_t desiredPoseSupplier,
     const std::vector<frc::Translation2d> &waypoints);
+  
+  frc::Trajectory trajGenerator(frc::Pose2d desiredPose,
+    const std::vector<frc::Translation2d> &waypoints)
+    {return trajGenerator([desiredPose] {return desiredPose;},
+    waypoints);}
 
     frc2::CommandPtr FollowPathCommand(
     pose_supplier_t desiredPoseSupplier,
@@ -215,12 +225,7 @@ public:
     {return FollowPathCommand([desiredPose] {return desiredPose;},
      waypoints, endVelo, tolerance);}
 
-  std::function<frc::SwerveDriveKinematics<4>()> kineThingy = [this]
-  {return kDriveKinematics;};
-
-  std::function<frc::HolonomicDriveController()> holoThingy = [this] {
-    return m_holonomicController;
-  };
+    frc2::CommandPtr FollowPathCommand(frc::Trajectory trajectory);
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:
