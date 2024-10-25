@@ -42,7 +42,7 @@ class PathFollower
     frc::Trajectory m_trajectory;
     Drivetrain& m_driveSubsystem;
     frc::Timer m_timer;
-    frc::Field2d m_field;
+    frc::Field2d* m_field;
     };
 
 

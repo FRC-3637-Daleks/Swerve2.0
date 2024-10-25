@@ -14,7 +14,7 @@ PathFollower::PathFollower(frc::Trajectory trajectory,
                 Drivetrain &subsystem) 
         : m_trajectory{std::move(trajectory)}, 
           m_driveSubsystem{subsystem},
-          m_field{}
+          m_field{&m_driveSubsystem.GetField()}
 {
     AddRequirements(&m_driveSubsystem);
 };
@@ -22,19 +22,18 @@ PathFollower::PathFollower(frc::Trajectory trajectory,
 void PathFollower::Initialize() {
   m_timer.Reset();
   m_timer.Start();
-  frc::SmartDashboard::PutData("Field", &m_field);
 }
 
 void PathFollower::Execute() {
     auto currentTime = m_timer.Get();
     auto desiredState = m_trajectory.Sample(currentTime);
     m_driveSubsystem.DriveToPose(desiredState, {0.0_m, 0.0_m, 0_deg});
-    m_field.GetObject("Trajectory")->SetTrajectory(m_trajectory);
+    m_field->GetObject("Trajectory")->SetTrajectory(m_trajectory);
 }
 
 void PathFollower::End(bool interrupted) {
   m_timer.Stop();
-  m_field.GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
+  m_field->GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
 }
 
 

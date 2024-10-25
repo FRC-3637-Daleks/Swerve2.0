@@ -135,18 +135,20 @@ public:
 
   frc::Pose2d GetSimulatedGroundTruth();
 
+
+
+  // Returns Current Chassis Speed
+  frc::ChassisSpeeds GetChassisSpeed();
+
+  units::meters_per_second_t GetSpeed();
+
+
   bool AtPose(
     const frc::Pose2d &desiredPose,
     const frc::Pose2d &tolerance={0.06_m, 0.06_m, 2_deg});
 
   bool IsStopped();
 
-  // Returns Current Chassis Speed
-  frc::ChassisSpeeds GetChassisSpeed();
-
-  units::meters_per_second_t GetSpeed();
-  // Resets the odometry using the given a field-relative pose using current
-  // gyro angle.
   void ResetOdometry(const frc::Pose2d &pose);
 
   void SetMapToOdom(const frc::Transform2d &transform);
