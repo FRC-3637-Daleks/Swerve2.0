@@ -124,9 +124,9 @@ Drivetrain::Drivetrain()
       m_pdh{kPDH, frc::PowerDistribution::ModuleType::kRev},
       m_poseEstimator{
         kDriveKinematics, GetGyroHeading(), each_position(), frc::Pose2d()},
-      m_sim_state(new DrivetrainSimulation(*this)),
       m_holonomicController(kTranslatePID, kTranslatePID, kThetaPID),
-      m_trajConfig(kMaxSpeed, kMaxAccel)  {
+      m_trajConfig(kMaxSpeed, kMaxAccel),
+      m_sim_state(new DrivetrainSimulation(*this))  {
   
   InitializeDashboard();
 
