@@ -1,15 +1,16 @@
 #pragma once
 #include <frc2/command/Command.h>
+#include <frc2/command/Commands.h>
 #include <frc2/command/CommandHelper.h>
 
-#include <frc/DataLogManager.h>
 #include <frc/Timer.h>
 #include <frc/geometry/Pose2d.h>
+#include <frc/trajectory/Trajectory.h>
+#include <frc/DataLogManager.h>
 #include <frc/smartdashboard/SmartDashboard.h>
-#include <frc2/command/Commands.h>
 
 #include <frc/controller/HolonomicDriveController.h>
-#include <frc/trajectory/Trajectory.h>
+
 
 #include "subsystems/Drivetrain.h"
 
@@ -37,6 +38,8 @@ class PathFollower
     void Execute() override;
 
     void End(bool interrupted) override;
+
+    virtual bool IsFinished();
 
     private:
     frc::Trajectory m_trajectory;
