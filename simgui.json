@@ -215,6 +215,12 @@
   },
   "NetworkTables Info": {
     "Server": {
+      "Publishers": {
+        "open": true
+      },
+      "Subscribers": {
+        "open": true
+      },
       "open": true
     },
     "visible": true

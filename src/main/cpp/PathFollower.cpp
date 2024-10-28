@@ -36,6 +36,12 @@ void PathFollower::End(bool interrupted) {
   m_field->GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
 }
 
+bool PathFollower::IsFinished() {
+  auto finalPose = m_trajectory.States() 
+    [m_trajectory.States().size() - 1].pose;
+  return m_driveSubsystem.AtPose(finalPose) && 
+    m_driveSubsystem.IsStopped();
+}
 
 frc2::CommandPtr Drivetrain::FollowPathCommand(frc::Trajectory trajectory) {
   return PathFollower{trajectory, *this}.ToPtr();
