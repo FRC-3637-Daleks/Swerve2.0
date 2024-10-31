@@ -17,6 +17,7 @@
 #include <frc/trajectory/Trajectory.h>
 #include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/trajectory/TrajectoryParameterizer.h>
+#include <choreo/lib/ChoreoTrajectory.h>
 
 #include <units/velocity.h>
 #include <units/acceleration.h>
