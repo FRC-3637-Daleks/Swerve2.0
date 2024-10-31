@@ -14,11 +14,13 @@
 #include <frc/trajectory/Trajectory.h>
 #include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/trajectory/TrajectoryParameterizer.h>
+#include <choreo/lib/ChoreoTrajectory.h>
 
 #include <units/velocity.h>
 #include <units/acceleration.h>
 #include <units/angular_velocity.h>
 #include <units/angular_acceleration.h>
+#include <units/math.h>
 
 #include <memory>
 #include <numbers>
@@ -62,6 +64,7 @@ public:
   using chassis_speed_supplier_t =
     std::function<frc::ChassisSpeeds()>;
 
+
 public:
   // The ctor of the Drivetrain subsystem.
   Drivetrain();
@@ -103,22 +106,10 @@ public:
 
   void CoastMode(bool coast);
 
-
-  void DriveToPose(
-    const frc::Trajectory::State &state,
-    const frc::Pose2d &tolerance = {0.0_m, 0.0_m, 0_deg});
-
-  void DriveToPose(
-    pose_supplier_t desiredPoseSupplier,
-    units::meters_per_second_t endVelo = 0.0_mps,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
-
   void DriveToPose(
     const frc::Pose2d &desiredPose,
-    units::meters_per_second_t endVelo = 0.0_mps,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg})
-    {return DriveToPose([desiredPose] {return desiredPose;}, 
-    endVelo, tolerance);}
+    frc::ChassisSpeeds feedForward = {0_mps, 0_mps, 0_rpm},
+    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg});
 
   // Returns the rotational velocity of the robot in degrees per second.
   units::degrees_per_second_t GetTurnRate();
@@ -170,10 +161,10 @@ public:
   // until its within 'tolerance' of 'desiredPose'
   frc2::CommandPtr DriveToPoseCommand(
     pose_supplier_t desiredPoseSupplier,
-    units::meters_per_second_t endVelo = 0.0_mps,
+    frc::ChassisSpeeds feedForward = {0_mps, 0_mps, 0_rpm},
     const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg}){
   return this->RunEnd(
-    [=, this] {DriveToPose(desiredPoseSupplier, endVelo, tolerance);
+    [=, this] {DriveToPose(desiredPoseSupplier(), feedForward, tolerance);
     },
     [this] {
       m_field.GetObject("Desired Pose")->SetPose({80_m, 80_m, 0_deg});
@@ -185,19 +176,13 @@ public:
   );
 };
 
-  frc2::CommandPtr DriveToPoseCommand(
-    const frc::Trajectory::State &state,
-    const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg}) {
-    return DriveToPoseCommand(
-      [state] {return state.pose;}, state.velocity, tolerance);
-  }
   
   frc2::CommandPtr DriveToPoseCommand(
     const frc::Pose2d &desiredPose,
-    units::meters_per_second_t endVelo = 0.0_mps,
+    frc::ChassisSpeeds feedForward = {0_mps, 0_mps, 0_rpm},
     const frc::Pose2d &tolerance = {0.06_m, 0.06_m, 3_deg}) {
     return DriveToPoseCommand(
-      [desiredPose] {return desiredPose;}, endVelo, tolerance);
+      [desiredPose] {return desiredPose;}, feedForward, tolerance);
   }
   
   // Drives the robot toward 'desiredPose()'
@@ -207,7 +192,7 @@ public:
   frc2::CommandPtr DriveToPoseIndefinitelyCommand(
     pose_supplier_t desiredPoseSupplier,
     units::second_t timeout = 3.0_s) {
-    return DriveToPoseCommand(std::move(desiredPoseSupplier), 0.0_mps, {}).WithTimeout(timeout);
+    return DriveToPoseCommand(std::move(desiredPoseSupplier), {0_mps, 0_mps, 0_rpm}, {}).WithTimeout(timeout);
   }
 
   frc2::CommandPtr DriveToPoseIndefinitelyCommand(
@@ -216,14 +201,6 @@ public:
     return DriveToPoseIndefinitelyCommand(
       [desiredPose] {return desiredPose;}, timeout);
   }
-
-  frc::Trajectory trajGenerator(pose_supplier_t desiredPoseSupplier,
-    const std::vector<frc::Translation2d> &waypoints);
-  
-  frc::Trajectory trajGenerator(frc::Pose2d desiredPose,
-    const std::vector<frc::Translation2d> &waypoints)
-    {return trajGenerator([desiredPose] {return desiredPose;},
-    waypoints);}
 
     frc2::CommandPtr FollowPathCommand(
     pose_supplier_t desiredPoseSupplier,
@@ -239,7 +216,7 @@ public:
     {return FollowPathCommand([desiredPose] {return desiredPose;},
      waypoints, endVelo, tolerance);}
 
-  frc2::CommandPtr FollowPathCommand(frc::Trajectory trajectory);
+  frc2::CommandPtr FollowPathCommand(choreolib::ChoreoTrajectory trajectory);
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:

@@ -23,6 +23,8 @@
 #include <frc2/command/button/Trigger.h>
 #include <frc/filter/SlewRateLimiter.h>
 
+#include <choreo/lib/Choreo.h>
+
 namespace AutoConstants {
 
 constexpr auto kMaxSpeed = 4.5_mps;
@@ -39,11 +41,7 @@ constexpr double kPXController = 0.5;
 constexpr double kPYController = 0.5;
 constexpr double kPThetaController = 0.5;
 
-constexpr frc::Pose2d desiredPose{1.3_m, 1.1_m, -120_deg};
-
-constexpr frc::Translation2d waypoint1{8.3_m, 4.1_m};
-constexpr frc::Translation2d waypoint2{8.3_m, 5.78_m};
-const std::vector<frc::Translation2d> waypointzVector{waypoint1, waypoint2};
+constexpr frc::Pose2d desiredPose{0_m, 0_m, 0_deg};
 
 // Trapezoidal motion profile for the robot heading.
 const frc::TrapezoidProfile<units::radians>::Constraints
@@ -174,8 +172,7 @@ void RobotContainer::ConfigureBindings() {
 
   DriveToPoseTrigger.WhileTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
-  auto traj = m_swerve.trajGenerator(AutoConstants::desiredPose,
-    AutoConstants::waypointzVector);
+  auto traj = choreolib::Choreo::GetTrajectory("Gerome");
 
   FollowPathTrigger.OnTrue(m_swerve.FollowPathCommand(traj));
 

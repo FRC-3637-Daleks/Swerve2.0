@@ -214,27 +214,22 @@ void Drivetrain::CoastMode(bool coast) {
 }
 
 void Drivetrain::DriveToPose(
-    const frc::Trajectory::State &state,
-    const frc::Pose2d &tolerance)   {
-      auto currentPose = GetPose();
-      m_holonomicController.SetTolerance(tolerance);
-      const auto speeds = m_holonomicController.Calculate(
-          currentPose, state, state.pose.Rotation());
-    RobotRelativeDrive(speeds);
-};
-
-void Drivetrain::DriveToPose(
-    pose_supplier_t desiredPoseSupplier,
-    units::meters_per_second_t endVelo,
+    const frc::Pose2d &desiredPose,
+    frc::ChassisSpeeds feedForward,
     const frc::Pose2d &tolerance) {
-      auto desiredPose = desiredPoseSupplier();
       auto currentPose = GetPose();
-      auto desiredRot = desiredPose.Rotation();
+      auto endVelo = units::math::sqrt(
+        units::math::pow<2>(feedForward.vx) + 
+        units::math::pow<2>(feedForward.vy));
+      auto rot = units::math::atan2(feedForward.vy, feedForward.vx);
+      frc::Pose2d newPose = {desiredPose.X(), desiredPose.Y(), rot};
       m_holonomicController.SetTolerance(tolerance);
       m_field.GetObject("Desired Pose")->SetPose(desiredPose);
-      const auto speeds = m_holonomicController.Calculate(
-          currentPose, desiredPose, endVelo, desiredRot);
-      RobotRelativeDrive(speeds);
+       auto speeds = m_holonomicController.Calculate(
+        currentPose, newPose, endVelo, desiredPose.Rotation());
+      frc::ChassisSpeeds finalSpeeds = 
+        {speeds.vx, speeds.vy, (speeds.omega + feedForward.omega)};
+      RobotRelativeDrive(finalSpeeds);
     }
     
 units::degrees_per_second_t Drivetrain::GetTurnRate() {
@@ -259,7 +254,8 @@ frc::ChassisSpeeds Drivetrain::GetChassisSpeed() {
 
 units::meters_per_second_t Drivetrain::GetSpeed(){
   const auto speeds = GetChassisSpeed();
-  return units::math::sqrt(speeds.vx*speeds.vx + speeds.vy*speeds.vy);
+  return units::math::sqrt(
+    units::math::pow<2>(speeds.vx) + units::math::pow<2>(speeds.vy));
 }
 
 bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance) {
@@ -267,7 +263,8 @@ bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &toler
   auto poseError = currentPose.RelativeTo(desiredPose);
   return (units::math::abs(poseError.X()) < tolerance.X()) &&
          (units::math::abs(poseError.Y()) < tolerance.Y()) &&
-         (units::math::abs(poseError.Rotation().Degrees()) < tolerance.Rotation().Degrees());
+         (units::math::abs(poseError.Rotation().Degrees()) < 
+          tolerance.Rotation().Degrees());
 } 
 
 bool Drivetrain::IsStopped()  {
@@ -353,14 +350,6 @@ frc2::CommandPtr Drivetrain::BasicSwerveCommand(
     Drive(cmd_vel());
   });
 }
-frc::Trajectory Drivetrain::trajGenerator(
-    pose_supplier_t desiredPoseSupplier,
-    const std::vector<frc::Translation2d> &waypoints)
-    {
-      return
-        frc::TrajectoryGenerator::GenerateTrajectory({0.0_m, 0.0_m, 0_deg},
-        waypoints, desiredPoseSupplier(), m_trajConfig);
-    }
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
   return this->RunOnce([&] { ZeroHeading(); });
