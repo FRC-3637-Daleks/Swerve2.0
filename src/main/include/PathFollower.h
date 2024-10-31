@@ -9,7 +9,9 @@
 #include <frc/DataLogManager.h>
 #include <frc/smartdashboard/SmartDashboard.h>
 
-#include <frc/controller/HolonomicDriveController.h>
+#include <choreo/lib/ChoreoTrajectory.h>
+
+
 
 
 #include "subsystems/Drivetrain.h"
@@ -30,7 +32,7 @@ class PathFollower
    * @param desiredPoseSupplier A function that returns the desired pose
    * @param subsystem The subsystem used by this command.
    */
-    PathFollower(frc::Trajectory trajectory,
+    PathFollower(choreolib::ChoreoTrajectory trajectory,
                 Drivetrain &subsystem);
 
     void Initialize() override;
@@ -42,7 +44,7 @@ class PathFollower
     virtual bool IsFinished();
 
     private:
-    frc::Trajectory m_trajectory;
+    choreolib::ChoreoTrajectory m_trajectory;
     Drivetrain& m_driveSubsystem;
     frc::Timer m_timer;
     frc::Field2d* m_field;

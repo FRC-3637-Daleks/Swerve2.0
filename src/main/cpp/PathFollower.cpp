@@ -5,12 +5,13 @@
 #include <units/length.h>
 #include <units/velocity.h>
 #include <units/time.h>
+#include <units/math.h>
 
 #include <iostream>
 #include <numbers>
 #include <random>
 
-PathFollower::PathFollower(frc::Trajectory trajectory,
+PathFollower::PathFollower(choreolib::ChoreoTrajectory trajectory,
                 Drivetrain &subsystem) 
         : m_trajectory{std::move(trajectory)}, 
           m_driveSubsystem{subsystem},
@@ -22,13 +23,15 @@ PathFollower::PathFollower(frc::Trajectory trajectory,
 void PathFollower::Initialize() {
   m_timer.Reset();
   m_timer.Start();
+  m_field->GetObject("Trajectory")->SetPoses(m_trajectory.GetPoses());
 }
 
 void PathFollower::Execute() {
     auto currentTime = m_timer.Get();
     auto desiredState = m_trajectory.Sample(currentTime);
-    m_driveSubsystem.DriveToPose(desiredState, {0.0_m, 0.0_m, 0_deg});
-    m_field->GetObject("Trajectory")->SetTrajectory(m_trajectory);
+    auto desiredPose = desiredState.GetPose();
+    auto feedForward = desiredState.GetChassisSpeeds();
+    m_driveSubsystem.DriveToPose(desiredPose, feedForward, {0.0_m, 0.0_m, 0_deg});
 }
 
 void PathFollower::End(bool interrupted) {
@@ -37,12 +40,12 @@ void PathFollower::End(bool interrupted) {
 }
 
 bool PathFollower::IsFinished() {
-  auto finalPose = m_trajectory.States() 
-    [m_trajectory.States().size() - 1].pose;
+  auto finalPose = m_trajectory.GetPoses()
+    [m_trajectory.GetPoses().size() - 1];
   return m_driveSubsystem.AtPose(finalPose) && 
     m_driveSubsystem.IsStopped();
 }
 
-frc2::CommandPtr Drivetrain::FollowPathCommand(frc::Trajectory trajectory) {
+frc2::CommandPtr Drivetrain::FollowPathCommand(choreolib::ChoreoTrajectory trajectory) {
   return PathFollower{trajectory, *this}.ToPtr();
 }
