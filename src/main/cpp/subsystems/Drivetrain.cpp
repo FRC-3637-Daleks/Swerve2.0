@@ -34,7 +34,8 @@
 namespace DriveConstants {
 constexpr auto kMaxSpeed = 15.7_fps;
 constexpr auto kMaxAccel = 6_mps_sq;
-constexpr auto kWeight = 123_lb;
+constexpr auto kWeight = 70_lb;
+constexpr auto kBatteryWeight = 12.9_lb;
 constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
 constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
 

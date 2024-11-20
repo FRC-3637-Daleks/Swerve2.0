@@ -33,22 +33,20 @@ namespace ModuleConstants {
 constexpr double kNeutralDeadband = 0.04;
 
 // Current Limit configs
-constexpr auto kDriveMotorCurrentLimit = 50;
-constexpr auto kSteerMotorCurrentLimit = 50;
+constexpr auto kDriveMotorCurrentLimit = 60;
+constexpr auto kSteerMotorCurrentLimit = 60;
 // Can exceed limit for 40ms seconds
-constexpr auto kCurrentLimitPeriod = 0.04_s;
+constexpr auto kCurrentLimitPeriod = 40_ms;
 
 // Indicates time from neutral to full output
 constexpr auto kRampRateSeconds = 0.2;
 
-constexpr auto kWheelDiameterIdeal = 4_in;
-constexpr auto kWheelDiameter = kWheelDiameterIdeal;
+constexpr auto kWheelDiameter = 4_in;
 
 constexpr double kDriveEncoderReduction = 6.75;     // reduction in drive motor
-constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per
-                                                    // revolution of motor
+constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per revolution of motor
     kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;
-constexpr auto kWheelMoment = .015_kg_sq_m;
+constexpr auto kWheelMoment = .0101_kg_sq_m; //calculated based on a weight of 70lbs
 constexpr auto kTalonSpeedChoreo = 5104_rpm; // choreo value
 constexpr auto kTalonSpeed = 6080_rpm;       // Website value
 constexpr auto kDriveAcceleration = 275_tr_per_s_sq;
