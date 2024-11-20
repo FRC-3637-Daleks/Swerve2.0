@@ -35,6 +35,8 @@ void PathFollower::Execute() {
 }
 
 void PathFollower::End(bool interrupted) {
+  auto error = m_timer.Get().value() - m_trajectory.GetTotalTime().value();
+  std::cout << error << std::endl;
   m_timer.Stop();
   m_field->GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
 }
@@ -46,6 +48,7 @@ bool PathFollower::IsFinished() {
     m_driveSubsystem.IsStopped();
 }
 
-frc2::CommandPtr Drivetrain::FollowPathCommand(choreolib::ChoreoTrajectory trajectory) {
+frc2::CommandPtr Drivetrain::FollowPathCommand(
+  choreolib::ChoreoTrajectory trajectory) {
   return PathFollower{trajectory, *this}.ToPtr();
 }
