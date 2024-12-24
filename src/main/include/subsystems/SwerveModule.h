@@ -37,6 +37,74 @@ class SwerveModuleSim;
  */
 class SwerveModule {
 public:
+  /**
+   * The SignalGroup struct encapsulates all the signals which are used
+   * at a high frequency by a SwerveModule. SignalGroup objects can be
+   * copied to maintain multiple thread-safe views into the module state.
+   */
+  struct SignalGroup {
+    using position_signal_t = ctre::phoenix6::StatusSignal<
+      units::angle::turn_t>;
+    using velocity_signal_t = ctre::phoenix6::StatusSignal<
+      units::angular_velocity::turns_per_second_t>;
+
+    position_signal_t m_drivePosition;
+    velocity_signal_t m_driveVelocity;
+    position_signal_t m_steerPosition;
+    velocity_signal_t m_steerVelocity;
+
+    // Returns the meters driven based on encoder reading.
+    units::meter_t GetModuleDistance();
+
+    // Returns the velocity of the module in m/s.
+    units::meters_per_second_t GetModuleVelocity();
+
+    // Returns the module heading in the scope [-180,180] degrees.
+    frc::Rotation2d GetModuleHeading();
+
+    // Combines GetModuleDistance() and GetModuleHeading().
+    frc::SwerveModulePosition GetPosition();
+
+    // Combines GetModuleVelocity() and GetModuleHeading().
+    frc::SwerveModuleState GetState();
+
+    // Efficiently refreshes a list of signal groups together
+    template <std::same_as<SignalGroup>... T>
+    static void RefreshAllSignals(T &...groups) {
+      ctre::phoenix6::BaseStatusSignal::RefreshAll(
+          groups.m_drivePosition..., groups.m_driveVelocity...,
+          groups.m_steerPosition..., groups.m_steerVelocity...);
+    }
+
+    // Similar to RefreshAllSignals but instead waits until all signals
+    // receives a fresh value from the CAN bus.
+    // Blocks until specified timeout. Returns true when timeout exceeded
+    // or other error
+    template <std::same_as<SignalGroup>... T>
+    static bool WaitForAllSignals(units::time::second_t timeout, T &...groups) {
+      return ctre::phoenix6::BaseStatusSignal::WaitForAll(
+        timeout,
+        groups.m_drivePosition..., groups.m_driveVelocity...,
+        groups.m_steerPosition..., groups.m_steerVelocity...
+      ) != ctre::phoenix::StatusCode::OK;
+    }
+
+    template <auto N>
+    static void RefreshAllSignals(std::array<SignalGroup, N> &groups) {
+      std::apply([](auto&& ...gs) {
+          RefreshAllSignals(std::forward<decltype(gs)>(gs)...);
+        }, groups);
+    }
+
+    template <auto N>
+    static bool WaitForAllSignals(
+      units::time::second_t timeout,std::array<SignalGroup, N> &groups) {
+      return std::apply([timeout](auto&& ...gs) {
+          return WaitForAllSignals(timeout, std::forward<decltype(gs)>(gs)...);
+        }, groups);
+    }
+  };
+public:
   // The ctor of the SwerveModule class.
   SwerveModule(const std::string name, const int driveMotorId,
                const int steerMotorId, const int absoluteEncoderId);
@@ -44,28 +112,49 @@ public:
   // Need to define destructor to make simulation code compile
   ~SwerveModule();
 
-  // IMPORTANT: Need to refresh signals once per loop
+  // IMPORTANT: Need to refresh signals once per loop.
+  // Getters will not return different values until signals are refreshed again
   void RefreshSignals();
+
+  SignalGroup GetSignals() {return m_signals;}
 
   // This one is even more efficient than RefreshSignals as it groups ALL
   // swerve module signals into a single call
-  template <std::same_as<SwerveModule>... T> static void RefreshAllSignals(T &...modules);
-  template <auto N> static void RefreshAllSignals(std::array<SwerveModule, N> &modules);
+  template <std::same_as<SwerveModule>... T>
+  static void RefreshAllSignals(T &...modules) {
+    SignalGroup::RefreshAllSignals(modules.m_signals...);
+  }
+  template <auto N>
+  static void RefreshAllSignals(std::array<SwerveModule, N> &modules) {
+    std::apply([](auto&& ...ms) {
+        RefreshAllSignals(std::forward<decltype(ms)>(ms)...);
+      }, modules);
+  }
 
   // Returns the meters driven based on encoder reading.
-  units::meter_t GetModuleDistance();
+  units::meter_t GetModuleDistance() {
+    return m_signals.GetModuleDistance();
+  }
 
   // Returns the velocity of the module in m/s.
-  units::meters_per_second_t GetModuleVelocity();
+  units::meters_per_second_t GetModuleVelocity() {
+    return m_signals.GetModuleVelocity();
+  }
 
   // Returns the module heading in the scope [-180,180] degrees.
-  frc::Rotation2d GetModuleHeading();
+  frc::Rotation2d GetModuleHeading() {
+    return m_signals.GetModuleHeading();
+  }
 
   // Combines GetModuleDistance() and GetModuleHeading().
-  frc::SwerveModulePosition GetPosition();
+  frc::SwerveModulePosition GetPosition() {
+    return m_signals.GetPosition();
+  }
 
   // Combines GetModuleVelocity() and GetModuleHeading().
-  frc::SwerveModuleState GetState();
+  frc::SwerveModuleState GetState() {
+    return m_signals.GetState();
+  }
 
   const std::string& GetName() {return m_name;}
 
@@ -100,29 +189,10 @@ private:
   // Keeps track of the module heading between power cycles.
   ctre::phoenix6::hardware::CANcoder m_absoluteEncoder;
 
-private: // signal objects to cache
-  ctre::phoenix6::StatusSignal<units::angle::turn_t> m_drivePosition;
-  ctre::phoenix6::StatusSignal<units::angular_velocity::turns_per_second_t>
-      m_driveVelocity;
-  ctre::phoenix6::StatusSignal<units::angle::turn_t> m_steerPosition;
-  ctre::phoenix6::StatusSignal<units::angular_velocity::turns_per_second_t>
-      m_steerVelocity;
+private: // signal object to cache
+  SignalGroup m_signals;
 
 private:
   friend class SwerveModuleSim;
   std::unique_ptr<SwerveModuleSim> m_sim_state;
 };
-
-// Template method must be defined in .h
-template <std::same_as<SwerveModule>... T> void SwerveModule::RefreshAllSignals(T &...modules) {
-  // This passes all 4N signals to one call to RefreshAll
-  ctre::phoenix6::BaseStatusSignal::RefreshAll(
-      modules.m_drivePosition..., modules.m_driveVelocity...,
-      modules.m_steerPosition..., modules.m_steerVelocity...);
-}
-
-template <auto N> void SwerveModule::RefreshAllSignals(std::array<SwerveModule, N> &modules) {
-  std::apply([](auto&& ...ms) {
-    RefreshAllSignals(std::forward<decltype(ms)>(ms)...);
-  }, modules);
-}

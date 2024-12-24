@@ -43,7 +43,7 @@ public:
   frc2::CommandJoystick m_swerveController;
 
   frc2::Trigger DriveToPoseTrigger{[this]() -> bool {
-    return m_swerveController.GetPOV() == 90; //right on DPad
+    return m_swerveController.GetHID().GetPOV() == 90; //right on DPad
   }};
 
   // The robot's subsystems are defined here...

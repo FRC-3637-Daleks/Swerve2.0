@@ -124,14 +124,14 @@ RobotContainer::RobotContainer()
 
 void RobotContainer::ConfigureBindings() {
     auto throttle = [this]() -> double { 
-    double input = m_swerveController.GetRawAxis(OperatorConstants::kThrottleAxis);
+    double input = m_swerveController.GetHID().GetRawAxis(OperatorConstants::kThrottleAxis);
     double ret = ((-input +1))/2;
     return ret;
   };
   // Configure Swerve Bindings.
   auto fwd = [this, throttle]() -> units::meters_per_second_t {
     auto input = frc::ApplyDeadband(
-        -m_swerveController.GetRawAxis(OperatorConstants::kForwardAxis),
+        -m_swerveController.GetHID().GetRawAxis(OperatorConstants::kForwardAxis),
         OperatorConstants::kDeadband);
     auto squaredInput =
         input * std::abs(input); // square the input while preserving the sign
@@ -144,7 +144,7 @@ void RobotContainer::ConfigureBindings() {
 
   auto strafe = [this, throttle]() -> units::meters_per_second_t {
     auto input = frc::ApplyDeadband(
-        -m_swerveController.GetRawAxis(OperatorConstants::kStrafeAxis),
+        -m_swerveController.GetHID().GetRawAxis(OperatorConstants::kStrafeAxis),
         OperatorConstants::kDeadband);
     auto squaredInput = input * std::abs(input);
     auto alliance_flip = IsRed()? -1:1;
@@ -156,7 +156,7 @@ void RobotContainer::ConfigureBindings() {
 
   auto rot = [this, throttle]() -> units::revolutions_per_minute_t {
     auto input = frc::ApplyDeadband(
-        -m_swerveController.GetRawAxis(OperatorConstants::kRotationAxis),
+        -m_swerveController.GetHID().GetRawAxis(OperatorConstants::kRotationAxis),
         OperatorConstants::kDeadband);
     auto squaredInput = input * std::abs(input);
     return OperatorConstants::kMaxTeleopTurnSpeed

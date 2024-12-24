@@ -1,6 +1,6 @@
 #pragma once
 
-#include <AHRS.h>
+#include <studica/AHRS.h>
 #include <frc/PowerDistribution.h>
 #include <frc/estimator/SwerveDrivePoseEstimator.h>
 #include <frc/geometry/Pose2d.h>
@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "SwerveModule.h"
+#include "swerve/OdometryThread.h"
 #include "DrivetrainInterfaceHelper.h"
 
 // Forward Declaration
@@ -301,10 +302,14 @@ private:
   frc::SwerveDriveKinematics<4> kDriveKinematics;
   std::array<SwerveModule, kNumModules> m_modules;
 
-  AHRS m_gyro;
+  studica::AHRS m_gyro;
 
   frc::PowerDistribution m_pdh;
-
+  
+  OdometryThread m_odom_thread;
+  frc::Transform2d m_initial_transform;  //< initial pose if known
+  frc::Transform2d m_map_to_odom;  //< pose correction from sensors
+  
   // Pose Estimator for estimating the robot's position on the field.
   frc::SwerveDrivePoseEstimator<4> m_poseEstimator;
 

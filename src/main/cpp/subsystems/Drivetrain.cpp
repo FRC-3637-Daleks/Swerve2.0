@@ -39,6 +39,8 @@ constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
 constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
 
 constexpr auto kPeriod = 20_ms;
+constexpr auto kOdomPeriod = 5_ms;
+constexpr int kOdomHertz = 200;
 
 constexpr double kPTheta = 3.62;
 constexpr double kITheta = 0.00;
@@ -120,8 +122,16 @@ Drivetrain::Drivetrain()
           kRearRightSteerMotorId,
           kRearRightAbsoluteEncoderChannel}
       }},
-      m_gyro{frc::SPI::Port::kMXP},
+      m_gyro{
+        studica::AHRS::NavXComType::kMXP_SPI,
+        kOdomHertz},  // update rate
       m_pdh{kPDH, frc::PowerDistribution::ModuleType::kRev},
+      m_odom_thread{
+        each_module([](SwerveModule& m) {return m.GetSignals();}),
+        m_gyro,
+        kDriveKinematics,
+        kOdomPeriod
+      },
       m_poseEstimator{
         kDriveKinematics, GetGyroHeading(), each_position(), frc::Pose2d()},
       m_sim_state(new DrivetrainSimulation(*this)),
@@ -142,6 +152,7 @@ void Drivetrain::Periodic() {
 
   // Do this once per loop
   SwerveModule::RefreshAllSignals(m_modules);
+  m_odom_thread.RefreshData();
 
   // Update the odometry with the current gyro angle and module states.
   m_poseEstimator.Update(GetGyroHeading(), each_position());
@@ -231,11 +242,11 @@ units::degrees_per_second_t Drivetrain::GetTurnRate() {
 }
 
 frc::Pose2d Drivetrain::GetPose() {
-  return m_poseEstimator.GetEstimatedPosition();
+  return m_odom_thread.GetPose() + m_initial_transform + m_map_to_odom;
 }
 
 frc::ChassisSpeeds Drivetrain::GetChassisSpeed() {
-  return kDriveKinematics.ToChassisSpeeds(each_state());
+  return m_odom_thread.GetVel();
 }
 
 units::meters_per_second_t Drivetrain::GetSpeed(){
@@ -255,6 +266,8 @@ bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &toler
 void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
       GetGyroHeading(), each_position(), pose);
+  
+  m_initial_transform = pose - GetPose();
 }
 
 void Drivetrain::InitializeDashboard() {
@@ -263,6 +276,7 @@ void Drivetrain::InitializeDashboard() {
   frc::SmartDashboard::PutData("zeroEncodersCommand",
                                zeroEncodersCommand.get());
   frc::SmartDashboard::PutData("PDH", &m_pdh);
+  frc::SmartDashboard::PutData("gyro", &m_gyro);
 
   frc::SmartDashboard::PutData("Swerve/ThetaPIDController",
                                &m_holonomicController.getThetaController());
