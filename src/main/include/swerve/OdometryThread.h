@@ -1,6 +1,6 @@
 #pragma once
 
-#include "subsystems/SwerveModule.h"
+#include "swerve/SwerveModule.h"
 
 #include <studica/AHRS.h>
 

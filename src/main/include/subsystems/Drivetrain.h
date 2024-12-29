@@ -24,7 +24,7 @@
 #include <numbers>
 #include <utility>
 
-#include "SwerveModule.h"
+#include "swerve/SwerveModule.h"
 #include "swerve/OdometryThread.h"
 #include "DrivetrainInterfaceHelper.h"
 
@@ -309,7 +309,7 @@ private:
   OdometryThread m_odom_thread;
   frc::Transform2d m_initial_transform;  //< initial pose if known
   frc::Transform2d m_map_to_odom;  //< pose correction from sensors
-  
+
   // Pose Estimator for estimating the robot's position on the field.
   frc::SwerveDrivePoseEstimator<4> m_poseEstimator;
 
