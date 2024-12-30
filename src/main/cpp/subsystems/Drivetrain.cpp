@@ -241,8 +241,16 @@ units::degrees_per_second_t Drivetrain::GetTurnRate() {
   return -m_gyro.GetRate() * 1_deg_per_s;
 }
 
+frc::Pose2d Drivetrain::GetOdomPose() {
+  return m_odom_thread.GetPose() + m_initial_transform;
+}
+
+units::second_t Drivetrain::GetOdomTimestamp() {
+  return m_odom_thread.GetTimestamp();
+}
+
 frc::Pose2d Drivetrain::GetPose() {
-  return m_odom_thread.GetPose() + m_initial_transform + m_map_to_odom;
+  return GetOdomPose() + m_map_to_odom;
 }
 
 frc::ChassisSpeeds Drivetrain::GetChassisSpeed() {
@@ -267,7 +275,18 @@ void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   m_poseEstimator.ResetPosition(
       GetGyroHeading(), each_position(), pose);
   
+  // m_initial_transform is a "hardcoded" offset.
+  // it is defined to be the transform which when added to the other
+  // components of GetPose(), will produce the 'pose' passed in here.
+  // m_map_to_odom is reset since this value is effectively invalidated
+  // by resetting the odometry.
+  m_initial_transform = {};
+  m_map_to_odom = {};
   m_initial_transform = pose - GetPose();
+}
+
+void Drivetrain::SetMapToOdom(const frc::Transform2d &transform) {
+  m_map_to_odom = transform;
 }
 
 void Drivetrain::InitializeDashboard() {

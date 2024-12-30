@@ -48,6 +48,8 @@ public:
   // Returns the cached pose data
   frc::Pose2d GetPose();
   frc::ChassisSpeeds GetVel();
+
+  // Note: timestamp is converted to FPGA timescale for network tables
   units::second_t GetTimestamp();
 
 private:

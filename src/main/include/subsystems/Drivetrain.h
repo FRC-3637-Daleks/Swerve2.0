@@ -126,6 +126,13 @@ public:
   // Returns the rotational velocity of the robot in degrees per second.
   units::degrees_per_second_t GetTurnRate();
 
+
+  // Returns the uncorrected odometry transform for streaming to ROS
+  frc::Pose2d GetOdomPose();
+
+  // Returns the timestamp associated with the current odometry pose
+  units::second_t GetOdomTimestamp();
+
   // Returns the robot heading and translation as a Pose2d.
   frc::Pose2d GetPose();
 
@@ -142,6 +149,8 @@ public:
   // Resets the odometry using the given a field-relative pose using current
   // gyro angle.
   void ResetOdometry(const frc::Pose2d &pose);
+
+  void SetMapToOdom(const frc::Transform2d &transform);
 
   // Display useful information on Shuffleboard.
   void InitializeDashboard();

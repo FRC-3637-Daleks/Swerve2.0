@@ -2,6 +2,8 @@
 
 #include <ctre/phoenix6/StatusSignal.hpp>
 
+#include <frc/RobotController.h>
+
 #include <iostream>
 
 OdometryThread::OdometryThread(
@@ -49,7 +51,10 @@ frc::ChassisSpeeds OdometryThread::GetVel() {
 }
 
 units::second_t OdometryThread::GetTimestamp() {
-  return m_timestamps[m_consumerIndex];
+  const units::microsecond_t fpga_time{frc::RobotController::GetFPGATime()};
+  const auto phoenix_time{ctre::phoenix6::utils::GetCurrentTime()};
+  const auto offset = fpga_time - phoenix_time;
+  return m_timestamps[m_consumerIndex] + offset;
 }
 
 void OdometryThread::PutData(

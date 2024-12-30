@@ -119,6 +119,9 @@ RobotContainer::RobotContainer()
   // Configure Auton.
   ConfigureAuto();
 
+  // Configure routines which one periodically and indefinitely
+  ConfigureContinuous();
+
   frc::DataLogManager::Log(fmt::format("Finished initializing robot."));
 }
 
@@ -178,6 +181,39 @@ void RobotContainer::ConfigureDashboard() {
 }
 
 void RobotContainer::ConfigureAuto() {}
+
+void RobotContainer::ConfigureContinuous() {
+  // These commands are for transmitting data across subsystems
+
+  // FMS info to ROS
+  frc2::CommandScheduler::GetInstance().Schedule(
+    frc2::cmd::Run([this] {
+      m_ros.CheckFMS();
+    })
+  );
+
+  // Odom to ROS
+  frc2::CommandScheduler::GetInstance().Schedule(
+    frc2::cmd::Run([this] {
+      m_ros.PubOdom(
+        m_swerve.GetOdomPose(),
+        m_swerve.GetChassisSpeed(),
+        m_swerve.GetOdomTimestamp());
+    })
+  );
+
+  /* NOTE: It's a little weird to have a command adjust the pose estimate
+   * since 2 other commands might observe different pose estimates.
+   * Triggers are evaluated before commands, though, so it shouldnt cause
+   * any races there.
+   */
+  // ROS to localization
+  frc2::CommandScheduler::GetInstance().Schedule(
+    frc2::cmd::Run([this] {
+      m_swerve.SetMapToOdom(m_ros.GetMapToOdom());
+    })
+  );
+}
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
   return frc2::cmd::None();

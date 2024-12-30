@@ -19,6 +19,7 @@
 #include <numbers>
 
 #include "subsystems/Drivetrain.h"
+#include "subsystems/ROSBridge.h"
 
 
 /**
@@ -49,6 +50,7 @@ public:
   // The robot's subsystems are defined here...
 
   Drivetrain m_swerve;
+  ROSBridge m_ros;
 
   bool m_isRed;
 
@@ -56,6 +58,7 @@ public:
   void ConfigureBindings();
   void ConfigureDashboard();
   void ConfigureAuto();
+  void ConfigureContinuous();
 
 public:
   bool IsRed();
