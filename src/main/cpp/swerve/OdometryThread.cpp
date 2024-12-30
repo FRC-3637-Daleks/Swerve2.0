@@ -2,6 +2,7 @@
 
 #include <ctre/phoenix6/StatusSignal.hpp>
 
+#include <frc/smartdashboard/SmartDashboard.h>
 #include <frc/RobotController.h>
 
 #include <iostream>
@@ -76,7 +77,7 @@ void OdometryThread::Run(units::millisecond_t period) {
       g.m_steerPosition, g.m_steerVelocity
     )) {
       if (retries-- == 0) {
-        std::cerr << "ERROR Customizing update frequencies" << std::endl;
+        fmt::println(stderr, "ERROR Customizing update frequencies");
         break;
       }
     }
@@ -114,13 +115,20 @@ void OdometryThread::Run(units::millisecond_t period) {
         for (auto t : time_samples) average_time += t;
         average_time /= n_window;
 
-        std::cerr << "WARNING: Milliseconds since last odom update: "
-          << millis_since_last.value() << " (should be " << period.value() << ")\t";
-        std::cerr << "Average loop-time (ms): " << average_time.value() << '\t';
-        std::cerr << "Percent timed-out: " << 100.0*warning_count/total << '\t';
-        if (timed_out)
-          std::cerr << "Waiting for signals timed out";
-        std::cerr << std::endl;
+        frc::SmartDashboard::PutNumber(
+          "Swerve/odom_thread/last overrun time (ms)",
+          millis_since_last.value()
+        );
+
+        frc::SmartDashboard::PutNumber(
+          "Swerve/odom_thread/average loop time (ms)",
+          average_time.value()
+        );
+
+        frc::SmartDashboard::PutNumber(
+          "Swerve/odom_thread/percent timeout",
+          100.0*warning_count/total
+        );
     }
     
     timestamp = now;
