@@ -52,7 +52,8 @@ frc::ChassisSpeeds OdometryThread::GetVel() {
 }
 
 units::second_t OdometryThread::GetTimestamp() {
-  const units::microsecond_t fpga_time{frc::RobotController::GetFPGATime()};
+  const units::microsecond_t fpga_time{
+    static_cast<double>(frc::RobotController::GetFPGATime())};
   const auto phoenix_time{ctre::phoenix6::utils::GetCurrentTime()};
   const auto offset = fpga_time - phoenix_time;
   return m_timestamps[m_consumerIndex] + offset;
@@ -108,9 +109,9 @@ void OdometryThread::Run(units::millisecond_t period) {
     const auto now = ctre::phoenix6::utils::GetCurrentTime();
     time_samples[total % n_window] = now - timestamp;
 
-    if (now - timestamp - period > 0.01*period) {
+    if (now - timestamp - period > 0.01*period || timed_out) {
       const auto millis_since_last = units::millisecond_t{now - timestamp};
-      if (warning_count++ % 20 == 0)
+      if (warning_count++ % 20 == 0) {
         average_time = 0_s;
         for (auto t : time_samples) average_time += t;
         average_time /= n_window;
@@ -129,6 +130,7 @@ void OdometryThread::Run(units::millisecond_t period) {
           "Swerve/odom_thread/percent timeout",
           100.0*warning_count/total
         );
+      }
     }
     
     timestamp = now;

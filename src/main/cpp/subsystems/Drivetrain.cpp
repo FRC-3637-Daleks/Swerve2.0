@@ -134,9 +134,9 @@ Drivetrain::Drivetrain()
       },
       m_poseEstimator{
         kDriveKinematics, GetGyroHeading(), each_position(), frc::Pose2d()},
-      m_sim_state(new DrivetrainSimulation(*this)),
       m_holonomicController(kTranslatePID, kTranslatePID, kThetaPID),
-      m_trajConfig(kMaxSpeed, kMaxAccel)  {
+      m_trajConfig(kMaxSpeed, kMaxAccel),
+      m_sim_state(new DrivetrainSimulation(*this)) {
   
   InitializeDashboard();
 
@@ -298,11 +298,11 @@ void Drivetrain::InitializeDashboard() {
   frc::SmartDashboard::PutData("gyro", &m_gyro);
 
   frc::SmartDashboard::PutData("Swerve/ThetaPIDController",
-                               &m_holonomicController.getThetaController());
+                               &m_holonomicController.GetThetaController());
   frc::SmartDashboard::PutData("Swerve/XPIDController",
-                               &m_holonomicController.getXController());
+                               &m_holonomicController.GetXController());
   frc::SmartDashboard::PutData("Swerve/YPIDController",
-                               &m_holonomicController.getYController());
+                               &m_holonomicController.GetYController());
 }
 
 void Drivetrain::UpdateDashboard() {
@@ -330,9 +330,9 @@ void Drivetrain::UpdateDashboard() {
   frc::SmartDashboard::PutNumber("Swerve/Gyro", m_gyro.GetAngle());
   
   double error[] = {
-    m_holonomicController.getXController().GetPositionError(),
-    m_holonomicController.getYController().GetPositionError(),
-    m_holonomicController.getThetaController().GetPositionError().value()};
+    m_holonomicController.GetXController().GetError(),
+    m_holonomicController.GetYController().GetError(),
+    m_holonomicController.GetThetaController().GetPositionError().value()};
   frc::SmartDashboard::PutNumberArray("Error", error);
 }
 
