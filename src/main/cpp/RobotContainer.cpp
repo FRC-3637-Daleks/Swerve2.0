@@ -23,7 +23,7 @@
 #include <frc2/command/button/Trigger.h>
 #include <frc/filter/SlewRateLimiter.h>
 
-#include <choreo/lib/Choreo.h>
+#include <choreo/Choreo.h>
 
 namespace AutoConstants {
 
@@ -172,9 +172,9 @@ void RobotContainer::ConfigureBindings() {
 
   DriveToPoseTrigger.WhileTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
-  auto traj = choreolib::Choreo::GetTrajectory("Gerome");
-
-  FollowPathTrigger.OnTrue(m_swerve.FollowPathCommand(traj));
+  if (auto traj = choreo::Choreo::LoadTrajectory<choreo::SwerveSample>("Gerome")) {
+    FollowPathTrigger.OnTrue(m_swerve.FollowPathCommand(traj.value()));
+  }
 
 }
 

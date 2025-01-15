@@ -1,6 +1,9 @@
 #pragma once
 
 #include <studica/AHRS.h>
+
+#include <choreo/Choreo.h>
+
 #include <frc/PowerDistribution.h>
 #include <frc/estimator/SwerveDrivePoseEstimator.h>
 #include <frc/geometry/Pose2d.h>
@@ -14,7 +17,6 @@
 #include <frc/trajectory/Trajectory.h>
 #include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/trajectory/TrajectoryParameterizer.h>
-#include <choreo/lib/ChoreoTrajectory.h>
 
 #include <units/velocity.h>
 #include <units/acceleration.h>
@@ -216,7 +218,8 @@ public:
     {return FollowPathCommand([desiredPose] {return desiredPose;},
      waypoints, endVelo, tolerance);}
 
-  frc2::CommandPtr FollowPathCommand(choreolib::ChoreoTrajectory trajectory);
+  frc2::CommandPtr FollowPathCommand(
+    choreo::Trajectory<choreo::SwerveSample> trajectory);
   
   /* Constructs a swerve control command from 3 independent controls
    * Each 'cmd' can be one of the following:

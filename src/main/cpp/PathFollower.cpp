@@ -11,11 +11,11 @@
 #include <numbers>
 #include <random>
 
-PathFollower::PathFollower(choreolib::ChoreoTrajectory trajectory,
-                Drivetrain &subsystem) 
-        : m_trajectory{std::move(trajectory)}, 
-          m_driveSubsystem{subsystem},
-          m_field{&m_driveSubsystem.GetField()}
+PathFollower::PathFollower(
+  trajectory_t trajectory, Drivetrain &subsystem) 
+  : m_trajectory{std::move(trajectory)}, 
+    m_driveSubsystem{subsystem},
+    m_field{&m_driveSubsystem.GetField()}
 {
     AddRequirements(&m_driveSubsystem);
 };
@@ -28,27 +28,28 @@ void PathFollower::Initialize() {
 
 void PathFollower::Execute() {
     auto currentTime = m_timer.Get();
-    auto desiredState = m_trajectory.Sample(currentTime);
-    auto desiredPose = desiredState.GetPose();
-    auto feedForward = desiredState.GetChassisSpeeds();
-    m_driveSubsystem.DriveToPose(desiredPose, feedForward, {0.0_m, 0.0_m, 0_deg});
+    if (auto desiredState = m_trajectory.SampleAt(currentTime, /* mirror */ false)) {
+      auto desiredPose = desiredState.value().GetPose();
+      auto feedForward = desiredState.value().GetChassisSpeeds();
+      m_driveSubsystem.DriveToPose(desiredPose, feedForward, {0.0_m, 0.0_m, 0_deg});
+    }
 }
 
 void PathFollower::End(bool interrupted) {
-  auto error = m_timer.Get().value() - m_trajectory.GetTotalTime().value();
-  std::cout << error << std::endl;
+  auto error = m_timer.Get() - m_trajectory.GetTotalTime();
+  //std::cout << units::second_t{error}.value() << std::endl;
   m_timer.Stop();
   m_field->GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
 }
 
 bool PathFollower::IsFinished() {
-  auto finalPose = m_trajectory.GetPoses()
-    [m_trajectory.GetPoses().size() - 1];
-  return m_driveSubsystem.AtPose(finalPose) && 
-    m_driveSubsystem.IsStopped();
+  auto finalPose = m_trajectory.GetFinalPose();
+  return finalPose.has_value() && 
+        m_driveSubsystem.AtPose(finalPose.value()) && 
+        m_driveSubsystem.IsStopped();
 }
 
 frc2::CommandPtr Drivetrain::FollowPathCommand(
-  choreolib::ChoreoTrajectory trajectory) {
-  return PathFollower{trajectory, *this}.ToPtr();
+  PathFollower::trajectory_t trajectory) {
+  return PathFollower{std::move(trajectory), *this}.ToPtr();
 }
