@@ -50,16 +50,17 @@ constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per revol
 constexpr auto kWheelMoment = .0101_kg_sq_m; //calculated based on a weight of 70lbs
 constexpr auto kTalonSpeedChoreo = 5104_rpm; // choreo value
 constexpr auto kTalonSpeed = 6080_rpm;       // Website value
-constexpr auto kDriveAcceleration = 275_tr_per_s_sq;
+constexpr auto kDriveMaxAcceleration = 530_tr_per_s_sq;
+constexpr auto kDriveTargetAcceleration = 400_tr_per_s_sq;
 constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
 
 constexpr double kSteerGearReduction = 150.0 / 7.0;
 constexpr auto kSteerMoment = 0.005_kg_sq_m;
-constexpr auto kSteerAcceleration =
-    1_tr_per_s_sq * kSteerGearReduction; // One tps^2 Acceleration, needs testing
+constexpr auto kSteerAcceleration = 135.7_tr_per_s_sq * 2; //Measured empirically, rough guess
+constexpr auto kSteerSpeed = kTalonSpeed / kSteerGearReduction;
 
-constexpr double kDriveP = 0, kDriveI = 0, kDriveD = 0;
-constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.05;
+constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
+constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.002;
 
 } // namespace ModuleConstants
 
@@ -159,26 +160,28 @@ SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
     .WithKP(kDriveP)
     .WithKI(kDriveI)
     .WithKD(kDriveD)
-    .WithKV(kDriveV.convert<ctre::unit::scalar_per_turn_per_second>().value())
+    .WithKV(ctre::unit::scalar_per_turn_per_second_t{kDriveV}.value())
   );
   
-  constexpr auto kSteerV = 1.0/kTalonSpeed;
+  constexpr auto kSteerV = 1.0/units::turns_per_second_t{kSteerSpeed};
+  constexpr auto kSteerA = 1.0/units::turns_per_second_squared_t{kSteerAcceleration};
   steerConfig.WithSlot0(configs::Slot0Configs{}
     .WithKP(kSteerP)
     .WithKI(kSteerI)
     .WithKD(kSteerD)
+    .WithKV(kSteerV.value())
+    .WithKA(kSteerA.value())
   );
 
   driveConfig.WithMotionMagic(configs::MotionMagicConfigs{}
-    .WithMotionMagicCruiseVelocity(kTalonSpeed)
-    .WithMotionMagicAcceleration(kDriveAcceleration)
-    .WithMotionMagicExpo_kV(12.0_V*kDriveV)
+    .WithMotionMagicAcceleration(kDriveTargetAcceleration)
   );
 
   steerConfig.WithMotionMagic(configs::MotionMagicConfigs{}
-    .WithMotionMagicCruiseVelocity(kTalonSpeed)
+    .WithMotionMagicCruiseVelocity(kSteerSpeed)
     .WithMotionMagicAcceleration(kSteerAcceleration)
     .WithMotionMagicExpo_kV(12.0_V*kSteerV)
+    .WithMotionMagicExpo_kA(12.0_V*kSteerA)
   );
 
   // this object has no "With*" API for some reason
