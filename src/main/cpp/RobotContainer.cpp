@@ -69,8 +69,8 @@ constexpr auto kMaxTeleopTurnSpeed = 2.5 * std::numbers::pi * 1_rad_per_s;
 
 namespace FieldConstants {
 
-constexpr auto field_length = 54_ft + 3.25_in;
-constexpr auto field_width = 26_ft + 11.75_in;
+constexpr auto field_length = 57_ft + 6.875_in;
+constexpr auto field_width = 26_ft + 5_in;
 constexpr auto mid_line = field_length / 2;
 
 } // namespace FieldConstants
