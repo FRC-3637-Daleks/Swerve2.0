@@ -50,8 +50,8 @@ constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per revol
 constexpr auto kWheelMoment = .015_kg_sq_m;
 constexpr auto kTalonSpeedChoreo = 5104_rpm; // choreo value, 80% of free speed to simulate being under load
 constexpr auto kTalonSpeed = 6080_rpm;       // Website value
-constexpr auto kDriveMaxAcceleration = 530_tr_per_s_sq;
-constexpr auto kDriveTargetAcceleration = 400_tr_per_s_sq;
+constexpr auto kDriveMaxAcceleration = 500_tr_per_s_sq;
+constexpr auto kDriveTargetAcceleration = 300_tr_per_s_sq;
 constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
 
 constexpr double kSteerGearReduction = 150.0 / 7.0;
@@ -60,7 +60,7 @@ constexpr auto kSteerAcceleration = 135.7_tr_per_s_sq * 2; //Measured empiricall
 constexpr auto kSteerSpeed = kTalonSpeed / kSteerGearReduction;
 
 constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
-constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.002;
+constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.002, kSteerS = 0.03;
 
 } // namespace ModuleConstants
 
@@ -156,6 +156,7 @@ SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
 
   // max duty cycle / corresponding velocity
   constexpr auto kDriveV = 1.0/(kPhysicalMaxSpeed/kDistanceToRotations);
+  //constexpr auto kDriveA = 1.0/units::turns_per_second_squared_t{kDriveMaxAcceleration};
   driveConfig.WithSlot0(configs::Slot0Configs{}
     .WithKP(kDriveP)
     .WithKI(kDriveI)
@@ -171,6 +172,7 @@ SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
     .WithKD(kSteerD)
     .WithKV(kSteerV.value())
     .WithKA(kSteerA.value())
+    .WithKS(kSteerS)
   );
 
   driveConfig.WithMotionMagic(configs::MotionMagicConfigs{}
