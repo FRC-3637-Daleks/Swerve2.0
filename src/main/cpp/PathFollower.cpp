@@ -29,15 +29,13 @@ void PathFollower::Initialize() {
 void PathFollower::Execute() {
     auto currentTime = m_timer.Get();
     if (auto desiredState = m_trajectory.SampleAt(currentTime, /* mirror */ false)) {
-      auto desiredPose = desiredState.value().GetPose();
-      auto feedForward = desiredState.value().GetChassisSpeeds();
+      auto desiredPose = desiredState->GetPose();
+      auto feedForward = desiredState->GetChassisSpeeds();
       m_driveSubsystem.DriveToPose(desiredPose, feedForward, {0.0_m, 0.0_m, 0_deg});
     }
 }
 
 void PathFollower::End(bool interrupted) {
-  auto error = m_timer.Get() - m_trajectory.GetTotalTime();
-  //std::cout << units::second_t{error}.value() << std::endl;
   m_timer.Stop();
   m_field->GetObject("Trajectory")->SetPose(100_m, 100_m, 0_deg);
 }
