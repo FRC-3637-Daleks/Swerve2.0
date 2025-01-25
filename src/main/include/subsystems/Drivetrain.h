@@ -159,7 +159,9 @@ public:
   frc2::CommandPtr BasicSwerveCommand(
     chassis_speed_supplier_t cmd_vel);
 
-  // Drives the robot to 'desiredPose()' with feedforward 'endVelo'
+  frc2::CommandPtr DynamicOdomReset();
+
+  // Drives the robot to 'desiredPose()' with feedforward 'endVele);o'
   // until its within 'tolerance' of 'desiredPose'
   frc2::CommandPtr DriveToPoseCommand(
     pose_supplier_t desiredPoseSupplier,
@@ -345,6 +347,7 @@ private:
   
   // For placement on Dashboard
   frc2::CommandPtr zeroEncodersCommand{ZeroAbsEncodersCommand()};
+  frc2::CommandPtr resetOdomCommand{DynamicOdomReset()};
 
 private:
   friend class DrivetrainSimulation;

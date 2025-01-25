@@ -48,9 +48,6 @@ public:
     return m_swerveController.GetHID().GetPOV() == 90; //right on DPad
   }};
 
-  frc2::Trigger FollowPathTrigger{[this]() -> bool {
-    return m_swerveController.GetHID().GetPOV() == 180; //right on DPad
-  }};
 
 
 

@@ -173,10 +173,10 @@ void RobotContainer::ConfigureBindings() {
   DriveToPoseTrigger.WhileTrue(
     m_swerve.DriveToPoseIndefinitelyCommand(AutoConstants::desiredPose));
   
-  auto traj = choreo::Choreo::LoadTrajectory<choreo::SwerveSample>("Gerome");
-  traj.has_value() ? 
-    FollowPathTrigger.WhileTrue(m_swerve.FollowPathCommand(traj.value())) :
-    FollowPathTrigger.WhileTrue(frc2::cmd::None());
+  auto traj = choreo::Choreo::LoadTrajectory<choreo::SwerveSample>("Square");
+  traj.has_value() ?
+    m_swerveController.Button(11).WhileTrue(m_swerve.FollowPathCommand(traj.value())) :
+    m_swerveController.Button(11).WhileTrue(frc2::cmd::None());
 }
 
 void RobotContainer::ConfigureDashboard() {

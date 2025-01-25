@@ -28,6 +28,7 @@ void PathFollower::Initialize() {
 
 void PathFollower::Execute() {
     auto currentTime = m_timer.Get();
+    std::cout << "Running!!\n";
     if (auto desiredState = m_trajectory.SampleAt(currentTime, /* mirror */ false)) {
       auto desiredPose = desiredState->GetPose();
       auto feedForward = desiredState->GetChassisSpeeds();

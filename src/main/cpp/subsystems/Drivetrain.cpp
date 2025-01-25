@@ -296,6 +296,9 @@ void Drivetrain::InitializeDashboard() {
   frc::SmartDashboard::PutData("Field", &m_field);
   frc::SmartDashboard::PutData("zeroEncodersCommand",
                                zeroEncodersCommand.get());
+  m_field.GetObject("reset_point")->SetPose(frc::Pose2d{});
+  frc::SmartDashboard::PutData("reset odom",
+                                resetOdomCommand.get());
   frc::SmartDashboard::PutData("PDH", &m_pdh);
   frc::SmartDashboard::PutData("gyro", &m_gyro);
 
@@ -350,6 +353,15 @@ frc2::CommandPtr Drivetrain::BasicSwerveCommand(
   return this->Run([=, this] {
     Drive(cmd_vel());
   });
+}
+
+frc2::CommandPtr Drivetrain::DynamicOdomReset() {
+  return this->RunOnce([=, this] {
+    auto reset_point = m_field.GetObject("reset_point")->GetPose();
+    fmt::println("Resetting Odom to: {}, {}, {}",
+      reset_point.X(), reset_point.Y(), reset_point.Rotation().Radians());
+    ResetOdometry(reset_point);
+  }).IgnoringDisable(true);
 }
 
 frc2::CommandPtr Drivetrain::ZeroHeadingCommand() {
