@@ -259,8 +259,7 @@ units::meters_per_second_t Drivetrain::GetSpeed(){
     units::math::pow<2>(speeds.vx) + units::math::pow<2>(speeds.vy));
 }
 
-bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance,
-                        const units::meters_per_second_t endVelo) {
+bool Drivetrain::AtPose(const frc::Pose2d &desiredPose, const frc::Pose2d &tolerance) {
   auto currentPose = GetPose();
   auto poseError = currentPose.RelativeTo(desiredPose);
   return (units::math::abs(poseError.X()) < tolerance.X()) &&
