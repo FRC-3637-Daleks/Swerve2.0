@@ -33,6 +33,8 @@ constexpr auto kMaxSpeed = 4.5_mps;
 constexpr auto kMaxAcceleration = 6_mps_sq;
 constexpr auto kPathMaxAcceleration = 4_mps_sq;
 // Swerve Constants (NEED TO BE INTEGRATED)
+// constexpr auto kMaxSpeed = PracticeModuleConstants::kPhysicalMaxSpeed / 3; // left
+// out as these are repeat values constexpr auto kMaxAcceleration = 10_fps_sq;
 constexpr auto kMaxAngularSpeed = std::numbers::pi * 1_rad_per_s;
 constexpr auto kMaxAngularAcceleration = std::numbers::pi * 2_rad_per_s_sq;
 

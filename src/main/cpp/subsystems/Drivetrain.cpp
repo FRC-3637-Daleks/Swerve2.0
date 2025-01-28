@@ -30,8 +30,59 @@
 
 #include <numeric>
 #include <iostream>
+namespace KrakenDriveConstants {
+  constexpr auto kMaxSpeed = 18.9_fps;
+constexpr auto kMaxAccel = 6_mps_sq; //no test
+constexpr auto kWeight = 70_lb;
+constexpr auto kBatteryWeight = 12.9_lb;
+constexpr auto kMaxTurnRate = 2.5 * std::numbers::pi * 1_rad_per_s;
+constexpr auto kMaxTurnAcceleration = 6 * std::numbers::pi * 1_rad_per_s_sq;
 
-namespace DriveConstants {
+constexpr auto kPeriod = 20_ms;
+constexpr auto kOdomPeriod = 5_ms;
+constexpr int kOdomHertz = 200;
+
+constexpr double kPTheta = 3.62;
+constexpr double kITheta = 0.00;
+constexpr double kDTheta = 0.00;
+inline const frc::ProfiledPIDController<units::radians> kThetaPID{
+  kPTheta, kITheta, kDTheta,
+  {kMaxTurnRate, kMaxTurnAcceleration}
+};
+
+constexpr double kPXY = 5.2;
+constexpr double kIXY = 0.0;
+constexpr double kDXY= 0.0;
+inline const frc::PIDController kTranslatePID{
+  kPXY, kIXY, kDXY
+};
+
+// Swerve Constants
+constexpr auto kTrackWidth =
+    25_in; // Distance between centers of right and left wheels.
+constexpr auto kWheelBase =
+    25_in; // Distance between centers of front and back wheels.
+const auto kRadius = units::meter_t(std::sqrt(.91));
+
+constexpr int kFrontLeftDriveMotorId = 1;
+constexpr int kRearLeftDriveMotorId = 3;
+constexpr int kFrontRightDriveMotorId = 5;
+constexpr int kRearRightDriveMotorId = 7;
+
+constexpr int kFrontLeftSteerMotorId = 2;
+constexpr int kRearLeftSteerMotorId = 4;
+constexpr int kFrontRightSteerMotorId = 6;
+constexpr int kRearRightSteerMotorId = 8;
+
+constexpr int kFrontLeftAbsoluteEncoderChannel = 9;
+constexpr int kRearLeftAbsoluteEncoderChannel = 10;
+constexpr int kFrontRightAbsoluteEncoderChannel = 11;
+constexpr int kRearRightAbsoluteEncoderChannel = 12;
+
+constexpr int kPDH = 25;
+
+}
+namespace PracticeDriveConstants {
 constexpr auto kMaxSpeed = 15.7_fps;
 constexpr auto kMaxAccel = 6_mps_sq;
 constexpr auto kWeight = 70_lb;
@@ -82,9 +133,9 @@ constexpr int kRearRightAbsoluteEncoderChannel = 12;
 
 constexpr int kPDH = 25;
 
-} // namespace DriveConstants
+} // namespace PracticeDriveConstants
 
-using namespace DriveConstants;
+using namespace PracticeDriveConstants;
 
 class DrivetrainSimulation {
 public:
@@ -169,7 +220,7 @@ void Drivetrain::RobotRelativeDrive(const frc::ChassisSpeeds &cmd_vel) {
   // Occasionally a drive motor is commanded to go faster than its maximum
   // output can sustain. Desaturation lowers the module speeds so that no motor
   // is driven above its maximum speed, while preserving the intended motion.
-  kDriveKinematics.DesaturateWheelSpeeds(&states, ModuleConstants::kPhysicalMaxSpeed);
+  kDriveKinematics.DesaturateWheelSpeeds(&states, PracticeModuleConstants::kPhysicalMaxSpeed);
 
   // Finally each of the desired states can be sent as commands to the modules.
   SetModuleStates(states);

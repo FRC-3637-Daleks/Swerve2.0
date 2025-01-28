@@ -30,8 +30,39 @@
 #include <iostream>
 #include <numbers>
 #include <random>
+namespace KrakenModuleConstants {
+  // Motor outputs under 4% will just be cut to 0 (brake)
+constexpr double kNeutralDeadband = 0.04;
 
-namespace ModuleConstants {
+// Current Limit configs
+constexpr auto kDriveMotorCurrentLimit = 70_A;
+constexpr auto kSteerMotorCurrentLimit = 30_A;
+// Can exceed limit for 40ms seconds
+constexpr auto kCurrentLimitPeriod = 40_ms;
+
+// Indicates time from neutral to full output
+constexpr auto kRampRate = 0.2_s;
+
+constexpr auto kWheelDiameter = 4_in;
+
+constexpr double kDriveEncoderReduction = 5.36;     // reduction in drive motor
+constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per revolution of motor
+    kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;
+constexpr auto kWheelMoment = .0101_kg_sq_m; //calculated based on a weight of 70lbs
+constexpr auto kMotorSpeed = 5800_rpm;       // Website value
+constexpr auto kDriveMaxAcceleration = 500_tr_per_s_sq;
+constexpr auto kDriveTargetAcceleration = 300_tr_per_s_sq;
+constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
+
+constexpr double kSteerGearReduction = 12.8;
+constexpr auto kSteerMoment = 0.005_kg_sq_m;
+constexpr auto kSteerAcceleration = 135.7_tr_per_s_sq * 2; //Measured empirically, rough guess
+constexpr auto kSteerSpeed = kMotorSpeed / kSteerGearReduction;
+
+constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
+constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.002, kSteerS = 0.03;
+}
+namespace PracticeModuleConstants {
 // Motor outputs under 4% will just be cut to 0 (brake)
 constexpr double kNeutralDeadband = 0.04;
 
@@ -50,8 +81,8 @@ constexpr double kDriveEncoderReduction = 6.75;     // reduction in drive motor
 constexpr auto kDriveEncoderDistancePerRevolution = // Linear distance per revolution of motor
     kWheelDiameter * std::numbers::pi / kDriveEncoderReduction;
 constexpr auto kWheelMoment = .0101_kg_sq_m; //calculated based on a weight of 70lbs
-constexpr auto kTalonSpeedChoreo = 5104_rpm; // choreo value
-constexpr auto kTalonSpeed = 6080_rpm;       // Website value
+constexpr auto kMotorSpeedChoreo = 5104_rpm; // choreo value
+constexpr auto kMotorSpeed = 6080_rpm;       // Website value
 constexpr auto kDriveMaxAcceleration = 500_tr_per_s_sq;
 constexpr auto kDriveTargetAcceleration = 300_tr_per_s_sq;
 constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
@@ -59,14 +90,14 @@ constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
 constexpr double kSteerGearReduction = 150.0 / 7.0;
 constexpr auto kSteerMoment = 0.015_kg_sq_m;
 constexpr auto kSteerAcceleration = 135.7_tr_per_s_sq * 2; //Measured empirically, rough guess
-constexpr auto kSteerSpeed = kTalonSpeed / kSteerGearReduction;
- 
+constexpr auto kSteerSpeed = kMotorSpeed / kSteerGearReduction;
+
 constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
 constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.02, kSteerS = 0.03;
 
-} // namespace ModuleConstants
+} // namespace PracticeModuleConstants
 
-using namespace ModuleConstants;
+using namespace PracticeModuleConstants;
 
 class SwerveModuleSim {
 public:
