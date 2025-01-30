@@ -21,8 +21,12 @@ public:
 
 public:
   void PubOdom(const frc::Pose2d &pose,
-               const frc::ChassisSpeeds &twist,
+               const frc::ChassisSpeeds &vel,
                units::second_t timestamp);
+  
+  // publishes the ground truth pose in sim for external use
+  void PubSim(const frc::Pose2d &pose);
+
   void CheckFMS();
   frc::Transform2d GetMapToOdom();
 
@@ -38,6 +42,10 @@ private:
 
   nt::DoubleArraySubscriber m_subMapToOdomLinear;
   nt::DoubleArraySubscriber m_subMapToOdomAngular;
+
+  nt::IntegerPublisher m_pubSimTimestamp;
+  nt::DoubleArrayPublisher m_pubSimPosLinear;
+  nt::DoubleArrayPublisher m_pubSimPosAngular;
 
   std::shared_ptr<nt::NetworkTable> m_fmsTable;
 };

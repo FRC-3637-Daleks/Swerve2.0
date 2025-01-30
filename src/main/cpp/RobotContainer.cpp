@@ -16,6 +16,7 @@
 
 #include <numbers>
 
+#include <frc/RobotBase.h>
 #include <frc/DataLogManager.h>
 #include <frc/DriverStation.h>
 #include <frc/smartdashboard/SmartDashboard.h>
@@ -179,6 +180,7 @@ void RobotContainer::ConfigureContinuous() {
     frc2::cmd::Run([this] {
       m_ros.CheckFMS();
     })
+    .IgnoringDisable(true)
   );
 
   // Odom to ROS
@@ -189,6 +191,7 @@ void RobotContainer::ConfigureContinuous() {
         m_swerve.GetChassisSpeed(),
         m_swerve.GetOdomTimestamp());
     })
+    .IgnoringDisable(true)
   );
 
   /* NOTE: It's a little weird to have a command adjust the pose estimate
@@ -196,12 +199,22 @@ void RobotContainer::ConfigureContinuous() {
    * Triggers are evaluated before commands, though, so it shouldnt cause
    * any races there.
    */
-  // ROS to localization
+  // ROS to swerve
   frc2::CommandScheduler::GetInstance().Schedule(
     frc2::cmd::Run([this] {
       m_swerve.SetMapToOdom(m_ros.GetMapToOdom());
     })
+    .IgnoringDisable(true)
   );
+
+  if constexpr (frc::RobotBase::IsSimulation()) {
+    frc2::CommandScheduler::GetInstance().Schedule(
+      frc2::cmd::Run([this] {
+        m_ros.PubSim(m_swerve.GetSimulatedGroundTruth());
+      })
+      .IgnoringDisable(true)
+    );
+  }
 }
 
 frc2::CommandPtr RobotContainer::GetAutonomousCommand() {
