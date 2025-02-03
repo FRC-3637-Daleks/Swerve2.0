@@ -6,6 +6,7 @@
 
 #include <frc/DriverStation.h>
 #include <frc/smartdashboard/SmartDashboard.h>
+#include <frc/shuffleboard/Shuffleboard.h>
 #include <frc/RobotController.h>
 #include <frc2/command/CommandScheduler.h>
 

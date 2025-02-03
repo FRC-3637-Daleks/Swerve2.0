@@ -238,7 +238,10 @@ units::degrees_per_second_t Drivetrain::GetTurnRate() {
 }
 
 frc::Pose2d Drivetrain::GetOdomPose() {
-  return m_odom_thread.GetPose() + m_initial_transform;
+  static constexpr frc::Pose2d origin;
+//  return m_odom_thread.GetPose() + m_initial_transform;
+  const auto odom_transform = m_odom_thread.GetPose() - origin;
+  return origin.TransformBy(m_initial_transform).TransformBy(odom_transform);
 }
 
 units::second_t Drivetrain::GetOdomTimestamp() {
@@ -284,7 +287,9 @@ void Drivetrain::ResetOdometry(const frc::Pose2d &pose) {
   // by resetting the odometry.
   m_initial_transform = {};
   m_map_to_odom = {};
-  m_initial_transform = pose - GetPose();
+  constexpr frc::Pose2d origin{};
+  const auto odom_transform = GetPose() - origin;
+  m_initial_transform = pose.TransformBy(odom_transform.Inverse()) - origin;
 }
 
 void Drivetrain::SetMapToOdom(const frc::Transform2d &transform) {
@@ -314,7 +319,9 @@ void Drivetrain::UpdateDashboard() {
   const auto robot_center = this->GetPose();
   
   m_field.SetRobotPose(this->GetPose());
-
+  m_field.GetObject("old odom")->SetPose(m_poseEstimator.GetEstimatedPosition());
+  m_field.GetObject("init pose")->SetPose(frc::Pose2d{}.TransformBy(m_initial_transform));
+  
   constexpr int xs[] = {1, 1, -1, -1};
   constexpr int ys[] = {1, -1, 1, -1};
   for (int i = 0; i < kNumModules; i++) {

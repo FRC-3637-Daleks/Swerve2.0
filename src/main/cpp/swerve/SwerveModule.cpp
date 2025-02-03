@@ -9,6 +9,7 @@
 #include <frc/MathUtil.h>
 #include <frc/RobotController.h>
 #include <frc/smartdashboard/SmartDashboard.h>
+#include <frc/filter/LinearFilter.h>
 
 #include <ctre/phoenix6/sim/TalonFXSimState.hpp>
 #include <frc/simulation/FlywheelSim.h>
@@ -24,6 +25,7 @@
 #include <units/voltage.h>
 #include <units/current.h>
 #include <units/time.h>
+#include <units/angle.h>
 
 #include <iostream>
 #include <numbers>
@@ -55,12 +57,12 @@ constexpr auto kDriveTargetAcceleration = 300_tr_per_s_sq;
 constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
 
 constexpr double kSteerGearReduction = 150.0 / 7.0;
-constexpr auto kSteerMoment = 0.005_kg_sq_m;
+constexpr auto kSteerMoment = 0.015_kg_sq_m;
 constexpr auto kSteerAcceleration = 135.7_tr_per_s_sq * 2; //Measured empirically, rough guess
 constexpr auto kSteerSpeed = kTalonSpeed / kSteerGearReduction;
-
+ 
 constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
-constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.002, kSteerS = 0.03;
+constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.02, kSteerS = 0.03;
 
 } // namespace ModuleConstants
 
@@ -78,7 +80,7 @@ public:
             kWheelMoment,
             kDriveEncoderReduction),
           frc::DCMotor::Falcon500FOC()),
-        m_swivelModel(
+        m_swivelModel( 
           frc::LinearSystemId::FlywheelSystem(
             frc::DCMotor::Falcon500(),
             kSteerMoment,
