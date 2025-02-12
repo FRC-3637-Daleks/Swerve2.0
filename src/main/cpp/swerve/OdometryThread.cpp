@@ -20,6 +20,12 @@ OdometryThread::OdometryThread(
   m_thread{[this, period] {Run(period);}} {
 }
 
+OdometryThread::~OdometryThread() {
+  // This only matters in sim but whatever
+  m_exit_flag = true;
+  m_thread.join();
+}
+
 /* Lock free algorithm for single producer single consumer on-demand
   * data passing.
   * There's storage for 3 copies of the data.
@@ -98,7 +104,7 @@ void OdometryThread::Run(units::millisecond_t period) {
   units::millisecond_t average_time = 0_s;
 
   // Run indefinitely
-  while (true) {
+  while (!m_exit_flag) {
     total += 1;
     // Waits for all 16 signals to come in syncronously
     // Timeout is set to the odom period
@@ -109,7 +115,7 @@ void OdometryThread::Run(units::millisecond_t period) {
     const auto now = ctre::phoenix6::utils::GetCurrentTime();
     time_samples[total % n_window] = now - timestamp;
 
-    if (now - timestamp - period > 0.01*period || timed_out) {
+    if (now - timestamp - period > 0.5*period || timed_out) {
       const auto millis_since_last = units::millisecond_t{now - timestamp};
       if (warning_count++ % 20 == 0) {
         average_time = 0_s;

@@ -41,6 +41,8 @@ public:
     units::millisecond_t period
   );
 
+  ~OdometryThread();
+
 public:
   // Refreshes consumer cache with most recent odom data
   void RefreshData();
@@ -69,6 +71,7 @@ private:
   uint8_t m_producerIndex{1};
   std::atomic<uint8_t> m_freeIndex{2};
   std::atomic<bool> m_unreadData{false};
+  std::atomic<bool> m_exit_flag{false};
 
 private:
   // the actual thread function
