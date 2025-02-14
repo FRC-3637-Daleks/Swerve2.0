@@ -13,6 +13,7 @@
 
 #include <ctre/phoenix6/sim/TalonFXSimState.hpp>
 #include <frc/simulation/FlywheelSim.h>
+#include <frc/simulation/DCMotorSim.h>
 #include <frc/system/plant/LinearSystemId.h>
 
 #include <units/acceleration.h>
@@ -61,7 +62,11 @@ constexpr auto kSteerSpeed = kMotorSpeed / kSteerGearReduction;
 
 constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
 constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.002, kSteerS = 0.03;
+
+const auto MotorModel = [] (int N=1) {return frc::DCMotor::KrakenX60FOC(N);};
+
 }
+
 namespace PracticeModuleConstants {
 // Motor outputs under 4% will just be cut to 0 (brake)
 constexpr double kNeutralDeadband = 0.04;
@@ -88,12 +93,14 @@ constexpr auto kDriveTargetAcceleration = 300_tr_per_s_sq;
 constexpr auto kDistanceToRotations = kDriveEncoderDistancePerRevolution / 1_tr;
 
 constexpr double kSteerGearReduction = 150.0 / 7.0;
-constexpr auto kSteerMoment = 0.015_kg_sq_m;
+constexpr auto kSteerMoment = 0.0001_kg_sq_m;  // Reduced to near 0-mass for smooth sim driving
 constexpr auto kSteerAcceleration = 135.7_tr_per_s_sq * 2; //Measured empirically, rough guess
 constexpr auto kSteerSpeed = kMotorSpeed / kSteerGearReduction;
 
 constexpr double kDriveP = 0, kDriveI = 0.1, kDriveD = 0;
 constexpr double kSteerP = 10, kSteerI = 0, kSteerD = 0.02, kSteerS = 0.03;
+
+const auto MotorModel = [] (int N=1) {return frc::DCMotor::Falcon500FOC(N);};
 
 } // namespace PracticeModuleConstants
 
@@ -106,22 +113,24 @@ public:
         m_steerSim(std::move(module.m_steerMotor.GetSimState())),
         m_encoderSim(std::move(module.m_absoluteEncoder.GetSimState())),
         m_wheelModel(
-          frc::LinearSystemId::FlywheelSystem(
-            frc::DCMotor::Falcon500FOC(),
+          frc::LinearSystemId::DCMotorSystem(
+            MotorModel(),
             kWheelMoment,
             kDriveEncoderReduction),
-          frc::DCMotor::Falcon500FOC()),
-        m_swivelModel( 
-          frc::LinearSystemId::FlywheelSystem(
-            frc::DCMotor::Falcon500(),
+          MotorModel()
+        ),
+        m_swivelModel(
+          frc::LinearSystemId::DCMotorSystem(
+            MotorModel(),
             kSteerMoment,
             kSteerGearReduction),
-          frc::DCMotor::Falcon500()) {
+          MotorModel()
+        ) {
     static std::random_device rng;
     std::uniform_real_distribution dist(-0.5, 0.5);
 
     // randomize starting positions
-    m_encoderSim.SetRawPosition(units::turn_t{dist(rng)});
+    m_swivelModel.SetState(dist(rng)*1_tr, 0_rpm);
   }
 
   void update();
@@ -133,7 +142,7 @@ private:
   ctre::phoenix6::sim::CANcoderSimState m_encoderSim;
 
   // tracks the simulation state for each wheel
-  frc::sim::FlywheelSim m_wheelModel, m_swivelModel;
+  frc::sim::DCMotorSim m_wheelModel, m_swivelModel;
 };
 
 SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
@@ -386,25 +395,26 @@ void SwerveModule::SimulationPeriodic() {
 void SwerveModuleSim::update() {
   m_driveSim.SetSupplyVoltage(frc::RobotController::GetBatteryVoltage());
   m_steerSim.SetSupplyVoltage(frc::RobotController::GetBatteryVoltage());
+  m_encoderSim.SetSupplyVoltage(frc::RobotController::GetBatteryVoltage());
 
   // Simulate the wheel swiveling
-  const auto prev_velocity = m_swivelModel.GetAngularVelocity();
   m_swivelModel.SetInputVoltage(m_steerSim.GetMotorVoltage());
   m_swivelModel.Update(20_ms);
-  const auto average_velocity =
-      (prev_velocity + m_swivelModel.GetAngularVelocity()) / 2;
   // cancoder is on mechanism and is inverted from the falcon's rotor
-  m_encoderSim.AddPosition(-average_velocity * 20_ms);
-  m_encoderSim.SetVelocity(-average_velocity);
-  m_steerSim.AddRotorPosition(average_velocity * kSteerGearReduction * 20_ms);
-  m_steerSim.SetRotorVelocity(average_velocity * kSteerGearReduction);
+  m_encoderSim.SetRawPosition(-m_swivelModel.GetAngularPosition());
+  m_encoderSim.SetVelocity(-m_swivelModel.GetAngularVelocity());
+  m_steerSim.SetRawRotorPosition(m_swivelModel.GetAngularPosition() * kSteerGearReduction);
+  m_steerSim.SetRotorVelocity(m_swivelModel.GetAngularVelocity() * kSteerGearReduction);
+  m_steerSim.SetRotorAcceleration(m_swivelModel.GetAngularAcceleration() * kSteerGearReduction);
 
   // Simulate the wheel turning (ignoring changes in traction)
   m_wheelModel.SetInputVoltage(m_driveSim.GetMotorVoltage());
   m_wheelModel.Update(20_ms);
 
+  m_driveSim.SetRawRotorPosition(m_wheelModel.GetAngularPosition() * 
+                                kDriveEncoderReduction);
   m_driveSim.SetRotorVelocity(m_wheelModel.GetAngularVelocity() *
                               kDriveEncoderReduction);
-  m_driveSim.AddRotorPosition(m_wheelModel.GetAngularVelocity() *
-                              kDriveEncoderReduction * 20_ms);
+  m_driveSim.SetRotorAcceleration(m_wheelModel.GetAngularAcceleration() *
+                                  kDriveEncoderReduction);
 }
