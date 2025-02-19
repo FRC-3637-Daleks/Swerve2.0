@@ -1,6 +1,6 @@
 {
  "name":"Square",
- "version":0,
+ "version":1,
  "snapshot":{
   "waypoints":[
     {"x":1.0, "y":2.5, "heading":0.0, "intervals":43, "split":false, "fixTranslation":true, "fixHeading":true, "overrideIntervals":false},
@@ -189,5 +189,6 @@
     {"t":7.16517, "x":1.0, "y":2.5, "heading":0.0, "vx":0.0, "vy":0.0, "omega":0.0, "ax":0.0, "ay":0.0, "alpha":0.0, "fx":[0.0,0.0,0.0,0.0], "fy":[0.0,0.0,0.0,0.0]}],
   "splits":[0]
  },
- "events":[]
+ "events":[
+   {"name":"test", "from":{"target":1, "targetTimestamp":2.06308, "offset":{"exp":"0 s", "val":0.0}}, "event":null}]
 }

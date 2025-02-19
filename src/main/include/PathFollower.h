@@ -41,7 +41,30 @@ public:
 
     virtual bool IsFinished();
 
+    static inline void registerCommand(std::string name,
+            std::shared_ptr<frc2::Command> command) {
+        GetNamedCommands().emplace(name, command);
+    }
+ 
+    static inline void registerCommand(std::string name,
+            frc2::CommandPtr &&command) {
+        registerCommand(name,
+                std::shared_ptr < frc2::Command
+                        > (std::move(command).Unwrap()));
+    }
+ 
+    static inline bool hasCommand(std::string name) {
+        return GetNamedCommands().contains(name);
+    }
+ 
+    static frc2::Command* getCommand(std::string name);
+ 
+    static std::unordered_map<std::string, std::shared_ptr<frc2::Command>>& GetNamedCommands()
+        {return m_namedCommands;}
+
 private:
+    static std::unordered_map<std::string, std::shared_ptr<frc2::Command>> m_namedCommands;
+    static std::unordered_map<std::string, frc::Pose2d> m_eventPoses;
     trajectory_t m_trajectory;
     Drivetrain& m_driveSubsystem;
     frc::Timer m_timer;
