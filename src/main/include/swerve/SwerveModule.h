@@ -13,6 +13,13 @@
 #include <ctre/phoenix6/TalonFX.hpp>
 
 // Only place constants here needed by other components
+namespace KrakenModuleConstants {
+
+// website value
+constexpr auto kPhysicalMaxSpeed = 18.9_fps;
+
+}
+
 namespace PracticeModuleConstants {
 
 // Values measured with the drivetrain suspended.
