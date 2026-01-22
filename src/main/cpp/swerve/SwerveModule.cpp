@@ -1,6 +1,6 @@
 #include "swerve/SwerveModule.h"
 
-#include <ctre/phoenix6/configs/Configs.hpp>
+//#include <ctre/phoenix6/configs/Configs.hpp>
 #include <ctre/phoenix6/controls/PositionDutyCycle.hpp>
 #include <ctre/phoenix6/controls/VelocityDutyCycle.hpp>
 #include <ctre/phoenix6/core/CoreTalonFX.hpp>
