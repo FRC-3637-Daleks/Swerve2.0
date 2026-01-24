@@ -109,9 +109,9 @@ private:
 
 SwerveModule::SwerveModule(const std::string name, const int driveMotorId,
   const int steerMotorId, const int absoluteEncoderId)
-  : m_name{name}, m_driveMotor(driveMotorId, "Drivebase"),
-  m_steerMotor(steerMotorId, "Drivebase"),
-  m_absoluteEncoder(absoluteEncoderId, "Drivebase"),
+  : m_name{name}, m_CANBusInstance{"Drivebase"} ,m_driveMotor(driveMotorId, m_CANBusInstance),
+  m_steerMotor(steerMotorId, m_CANBusInstance),
+  m_absoluteEncoder(absoluteEncoderId, m_CANBusInstance),
   m_signals{m_driveMotor.GetPosition(), m_driveMotor.GetVelocity(),
             m_steerMotor.GetPosition(), //< FusedCANCoder
             m_steerMotor.GetVelocity()},
